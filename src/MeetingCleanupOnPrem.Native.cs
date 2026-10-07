@@ -10,7 +10,7 @@
 //          neutralised) and the JSON of the report
 //
 // Author : Nicolas Fabert
-// Version: 1.0.0
+// Version: 1.1.0
 
 using System;
 using System.Collections;
@@ -28,7 +28,7 @@ namespace MeetingCleanupOnPremNative
 {
     public static class Fast
     {
-        public const string Version = "1.0.0";
+        public const string Version = "1.1.0";
         static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
         static readonly string[] CopyRoles = { "Organizer", "Attendee", "Room" };
         const string TypesNs = "http://schemas.microsoft.com/exchange/services/2006/types";
@@ -366,7 +366,7 @@ namespace MeetingCleanupOnPremNative
         /// <summary>One row per meeting, for the CSV and the HTML (Get-McoMeetingRows).</summary>
         public static Table MeetingTable(object meetings)
         {
-            var t = new Table("MeetingId", "Subject", "Organizer", "OrganizerName", "Kind", "Scope", "Occurrences", "NewOrganizer", "NewMeetingId", "TransferMethod",
+            var t = new Table("MeetingId", "Subject", "Organizer", "OrganizerName", "Kind", "Scope", "Occurrences", "OccurrencesSkipped", "NewOrganizer", "NewMeetingId", "TransferMethod",
                 "StartText", "EndText", "NextInPeriod", "Recurrence", "Location", "OrganizerCopy", "Copies", "RoomCopies", "AttendeeCopies", "NotProcessed",
                 "Cancelled", "Selected", "Status", "Notes");
             foreach (var m in Items(meetings))
@@ -377,13 +377,49 @@ namespace MeetingCleanupOnPremNative
                 var notes = new List<string>();
                 foreach (var n in Items(Prop(m, "Notes"))) { notes.Add(ToText(n)); }
                 t.Rows.Add(new object[] {
-                    Text(m, "MeetingId"), Text(m, "Subject"), Text(m, "Organizer"), Text(m, "OrganizerName"), Text(m, "Kind"), Text(m, "Scope"), ToInt(Prop(m, "Occurrences")),
+                    Text(m, "MeetingId"), Text(m, "Subject"), Text(m, "Organizer"), Text(m, "OrganizerName"), Text(m, "Kind"), Text(m, "Scope"), ToInt(Prop(m, "Occurrences")), SkippedCount(m),
                     Text(m, "NewOrganizer"), Text(m, "NewMeetingId"), Text(m, "TransferMethod"),
                     Text(m, "StartText"), Text(m, "EndText"), Text(m, "NextInPeriod"), Text(m, "Recurrence"), Text(m, "Location"), Text(m, "OrganizerCopy"),
                     copies.Count, CountRole(copies, "Room"), CountRole(copies, "Attendee"), notProcessed,
                     Flag(m, "Cancelled"), Flag(m, "Selected"), Text(m, "Status"), notes.ToArray() });
             }
             return t;
+        }
+
+        /// <summary>How many occurrences of a series are left out (SkippedOccurrences of a reviewed report).</summary>
+        public static int SkippedCount(object meeting)
+        {
+            var keys = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var k in Items(Prop(meeting, "SkippedOccurrences"))) { var s = KeyText(k); if (s.Length > 0) { keys.Add(s); } }
+            return keys.Count;
+        }
+
+        /// <summary>
+        /// An occurrence key as text: its start, UTC, round-trip format ("o"). A report read again with ConvertFrom-Json
+        /// gives a date: it is written back the same way.
+        /// </summary>
+        public static string KeyText(object v)
+        {
+            var b = v == null ? null : Base(v);
+            if (b is DateTime) { return ((DateTime)b).ToUniversalTime().ToString("o", Inv); }
+            if (b is DateTimeOffset) { return ((DateTimeOffset)b).UtcDateTime.ToString("o", Inv); }
+            return ToText(v);
+        }
+
+        /// <summary>The slot of an occurrence copy (OccurrenceKey; Occurrence for a copy of an older report).</summary>
+        public static string OccurrenceKeyOf(object copy)
+        {
+            var k = KeyText(Prop(copy, "OccurrenceKey"));
+            return k.Length > 0 ? k : KeyText(Prop(copy, "Occurrence"));
+        }
+
+        /// <summary>The Kind column of the console: Single, Series, or the occurrences of a series acted on (2 occ., 1/3 occ.).</summary>
+        public static string KindText(object m)
+        {
+            if (Text(m, "Scope") != "Occurrences") { return Text(m, "Kind"); }
+            int all = ToInt(Prop(m, "Occurrences"));
+            int skipped = SkippedCount(m);
+            return skipped > 0 ? string.Format(Inv, "{0}/{1} occ.", Math.Max(0, all - skipped), all) : string.Format(Inv, "{0} occ.", all);
         }
 
         /// <summary>One row per copy (Get-McoCopyRows).</summary>

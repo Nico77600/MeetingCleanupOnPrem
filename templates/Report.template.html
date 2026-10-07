@@ -2,7 +2,7 @@
 <!--
     Meeting Cleanup On-Prem - HTML template (from Meeting Cleanup 1.2.3)
     Author  : Nicolas Fabert
-    Version : 1.0.0
+    Version : 1.1.0
     Export-McoReport (src\MeetingCleanupOnPrem.Report.ps1) copies this file and replaces six markers, each exactly
     once: TITLE (text), and SUMMARY, MEETINGS, COPIES, ORGANIZERS, TRANSFERS (JSON, in the script blocks at the end of
     the body; TRANSFERS is an empty list outside a Transfer run, and its tab is hidden then).
@@ -229,7 +229,7 @@ footer { color:var(--cp-text-muted); font-size:12px; text-align:center; margin-t
   if (list(S.Warnings).length) notes.push(`<div class="notice"><strong>Warnings</strong><ul>${list(S.Warnings).map(w => `<li>${esc(w)}</li>`).join("")}</ul></div>`);
   if (action === "Remove" && n.Kept) notes.push(`<div class="notice info">${fmt(n.Kept)} meeting(s) stay in the calendar of their organizer: Remove only cleans the attendees and the rooms, silently. Run the action <strong>Cancel</strong> to cancel them with a message.</div>`);
   if (S.CleanupComment) notes.push(`<div class="notice info"><strong>Cancellation message:</strong> ${esc(S.CleanupComment)}</div>`);
-  if (n.OccurrenceCopies) notes.push(`<div class="notice info"><strong>Rooms:</strong> ${fmt(M.filter(m => m.Scope === "Occurrences").length)} series limited to their occurrences in the period (${fmt(n.OccurrenceCopies)} occurrence copies): the series go on outside the period. A removed occurrence cannot be restored by the tool (Backup.json lists it).</div>`);
+  if (n.OccurrenceCopies) notes.push(`<div class="notice info"><strong>${rooms ? "Rooms" : "Series by occurrences"}:</strong> ${fmt(M.filter(m => m.Scope === "Occurrences").length)} series limited to their occurrences in the period (${fmt(n.OccurrenceCopies)} occurrence copies): the series go on outside the period. A removed occurrence cannot be restored by the tool (Backup.json lists it).</div>`);
   if (transfer) notes.push(`<div class="notice info"><strong>Transfer to ${esc(S.NewOrganizer)}:</strong> Exchange Server has no native organizer transfer: each meeting was re-created and sent again by the new organizer (a series from its next occurrence), the attendees answer again. The old copies were removed without a message, or cancelled by their old organizer when he still has a mailbox.</div>`);
   if (S.FromReport) notes.push(`<div class="notice info">${restore ? "Restore of the copies removed by the run of" : "Replay of the reviewed report"} <span class="mono">${esc(S.FromReport)}</span>.</div>`);
   if (S.BackupFile) notes.push(`<div class="notice info"><strong>Backup before any change:</strong> <span class="mono">${esc(S.BackupFile)}</span>. ${transfer ? "A transfer that failed after removing room copies is undone with" : "To undo a Remove:"} <span class="mono">-Action Restore -FromReport &lt;this folder&gt;</span>, within the retention of deleted items.</div>`);
@@ -239,7 +239,7 @@ footer { color:var(--cp-text-muted); font-size:12px; text-align:center; margin-t
   const scopes = { Organizer: "organizer's calendar", Rooms: "room mailboxes", Mailboxes: "mailboxes of a list", AllMailboxes: "every mailbox" };
   $("scope").innerHTML = [
     rooms ? ["Rooms", `${roomList.length > 3 ? fmt(roomList.length) + " rooms" : roomList.map(esc).join("<br>")}<em>every organizer · ${fmt(list(S.Organizers).length)} organizer(s) concerned, see the Organizers tab</em>`] : ["Organizer", list(S.Organizers).length > 3 ? `${fmt(list(S.Organizers).length)} organizers<em>${fmt(list(S.Organizers).filter(o => o.State === "Mailbox").length)} with a mailbox · see the Organizers tab</em>` : (list(S.Organizers).map(o => `${esc(o.DisplayName || o.Input)}<em>${esc(o.PrimaryAddress)} · ${esc(o.Detail)}</em>`).join("") || "-")],
-    ["Meetings", `${esc(req.StartText)} &rarr; ${esc(req.EndText)}<em>${req.Subject ? "subject contains '" + esc(req.Subject) + "'" : "every subject"}${list(req.MeetingId).length ? " · " + list(req.MeetingId).length + " meeting ID(s)" : ""}</em>`],
+    ["Meetings", `${esc(req.StartText)} &rarr; ${esc(req.EndText)}<em>${req.Subject ? "subject contains '" + esc(req.Subject) + "'" : "every subject"}${list(req.MeetingId).length ? " · " + list(req.MeetingId).length + " meeting ID(s)" : ""}${req.SeriesScope === "Occurrences" && !rooms ? " · series by occurrences" : ""}</em>`],
     ["Searched in", `${rooms ? "these rooms only" : (list(req.SearchIn).map(s => esc(scopes[s] || s)).join(", ") || "-")}<em>${fmt(sr.Read)} mailbox(es) read · ${fmt(sr.Events)} item(s) · ${fmt(sr.NoMailbox)} without mailbox${sr.Denied ? " · " + fmt(sr.Denied) + " denied" : ""}</em>`],
     ["Connection", `${esc(S.AppName || S.AppId)}<em>${esc(S.Tool)} ${esc(S.Version)} · ${esc(action)}</em>`]
   ].map(([k, v]) => `<div class="scope-card"><span>${k}</span><strong>${v}</strong></div>`).join("");
@@ -267,7 +267,7 @@ footer { color:var(--cp-text-muted); font-size:12px; text-align:center; margin-t
     { key: "StartText", label: "Start", cls: "nowrap mono" },
     { key: "Subject", label: "Subject", html: r => `<strong>${esc(r.Subject || "(no subject)")}</strong><span class="sub">${esc(r.Kind === "Series" ? r.Recurrence : r.Location)}</span>` },
     { key: "Organizer", label: "Organizer", html: r => `${esc(r.OrganizerName || r.Organizer)}<span class="sub">${esc(r.OrganizerName ? r.Organizer : "")}</span>` },
-    { key: "Kind", label: "Kind", html: r => r.Kind === "Series" ? `<span class="pill accent">Series</span>${r.Scope === "Occurrences" ? `<span class="sub">${fmt(r.Occurrences)} occurrence(s) in the period</span>` : (r.NextInPeriod ? `<span class="sub">next ${esc(r.NextInPeriod)}</span>` : "")}` : "Single" },
+    { key: "Kind", label: "Kind", html: r => r.Kind === "Series" ? `<span class="pill accent">Series</span>${r.Scope === "Occurrences" ? `<span class="sub">${fmt(r.Occurrences)} occurrence(s) in the period${r.OccurrencesSkipped ? " · " + fmt(r.OccurrencesSkipped) + " left out" : ""}</span>` : (r.NextInPeriod ? `<span class="sub">next ${esc(r.NextInPeriod)}</span>` : "")}` : "Single" },
     { key: "OrganizerCopy", label: "Organizer copy", html: r => pill(r.OrganizerCopy) },
     { key: "Copies", label: "Copies", num: true, cls: "num" },
     { key: "RoomCopies", label: "Rooms", num: true, cls: "num" },

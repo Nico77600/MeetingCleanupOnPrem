@@ -6,7 +6,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $script:ToolRoot = $PSScriptRoot
-$script:ToolVersion = '1.0.0'
+$script:ToolVersion = '1.1.0'
 $script:LogWriter = $null
 $script:LogPath = $null
 $script:Quiet = $false

@@ -36,7 +36,7 @@
 
 .NOTES
     Author  : Nicolas Fabert
-    Version : 1.0.0  (from Meeting Cleanup 1.2.3)
+    Version : 1.1.0  (from Meeting Cleanup 1.3.0)
     PowerShell pitfall: never name a variable $matches — every -match overwrites the automatic
     $Matches, and variable names are case-insensitive.
 #>

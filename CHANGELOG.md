@@ -3,6 +3,27 @@
 All notable changes are listed here. Versions follow MAJOR.MINOR.PATCH (see the developer guide, appendix D).
 Author: Nicolas Fabert.
 
+## [1.1.0] — 2026-10-07
+
+One occurrence of a series, without going through the rooms (Meeting Cleanup 1.3.0).
+
+### Added
+- **Series by occurrences** for the meetings of organizers: `-SeriesScope Occurrences` (`Search.SeriesScope`) limits
+  each series to its occurrences in the period — with a period of one day, one occurrence. The occurrences are those
+  of the organizer's calendar (of the attendees' and rooms' copies when the organizer's mailbox is gone). *Cancel*
+  sends one cancellation per occurrence, for that date only; *Remove* takes the occurrences out of the attendees' and
+  rooms' calendars without a message. The series goes on. With an action, the period must be given; *Transfer* stays
+  for whole series. A series whose organizer cannot be read is left as it is; a note says when every occurrence of a
+  series is in the period (`-SeriesScope Whole` acts on it at once).
+- The report: column *OccurrencesSkipped* (Meetings), the scope card says *series by occurrences*, the console and
+  the *Kind* column show `1 occ.` (`2/3 occ.` when occurrences are left out). A replay (`-FromReport`) leaves out the
+  occurrences of `SkippedOccurrences` (copies *Skipped*), as in Meeting Cleanup.
+- Measured in the lab: one occurrence of a weekly series of 4 cancelled from the command line — gone at the organizer,
+  the attendee and the room, one *Canceled:* for that date, the three other occurrences intact.
+
+### Changed
+- A cancellation that fails holds the copies of that occurrence only (before: of the whole meeting).
+
 ## [1.0.0] — 2026-10-07
 
 First public release: the Exchange Server counterpart of Meeting Cleanup 1.2.3 (Exchange Online), validated on a

@@ -526,3 +526,126 @@ Describe 'Simulated Exchange Server' {
         Get-Content $search.Files.Html -Raw | Should -Match 'id="data-transfers">\[\]</script>'
     }
 }
+
+Describe 'Series by occurrences' {
+    It 'checks -SeriesScope: a period with an action, never a transfer, always in rooms mode' {
+        $settings = New-TestSettings
+        $settings.SeriesScope | Should -Be 'Whole'
+        $day = @{ Start = [datetime]'2030-01-16'; End = [datetime]'2030-01-16' }
+        $r = New-McoRequest -Settings $settings -Organizer 'org@contoso.test' -SeriesScope Occurrences -Action Cancel
+        ((Test-McoRequest $r).Problems -join ' ') | Should -Match 'Series by occurrences: give the period of the action'
+        $r = New-McoRequest -Settings $settings -Organizer 'org@contoso.test' -SeriesScope Occurrences -Action Cancel @day
+        (Test-McoRequest $r).IsValid | Should -BeTrue
+        $r.SeriesScope | Should -Be 'Occurrences'
+        (Test-McoRequest (New-McoRequest -Settings $settings -Organizer 'org@contoso.test' -SeriesScope Occurrences)).IsValid | Should -BeTrue
+        $r = New-McoRequest -Settings $settings -Organizer 'org@contoso.test' -SeriesScope Occurrences -Action Transfer -NewOrganizer 'new@contoso.test' @day
+        ((Test-McoRequest $r).Problems -join ' ') | Should -Match 'Transfer moves whole series'
+        (New-McoRequest -Settings $settings -Room 'room1@contoso.test').SeriesScope | Should -Be 'Occurrences'
+        $settings.SeriesScope = 'Occurrences'
+        (New-McoRequest -Settings $settings -Organizer 'org@contoso.test').SeriesScope | Should -Be 'Occurrences'
+        (New-McoRequest -Settings $settings -Organizer 'org@contoso.test' -SeriesScope Whole).SeriesScope | Should -Be 'Whole'
+        $settings.SeriesScope = 'Some'
+        ((Test-McoConfiguration $settings).Problems -join ' ') | Should -Match "Search.SeriesScope must be 'Whole' or 'Occurrences'"
+    }
+
+    It 'cancels one occurrence of a series: one cancellation for that date, the other occurrences intact' {
+        $settings = New-TestSettings
+        $store = New-FakeTenant
+        Install-FakeEws -Store $store -Settings $settings
+        $request = New-McoRequest -Settings $settings -Organizer 'org@contoso.test' -SeriesScope Occurrences -Start ([datetime]'2030-01-16') -End ([datetime]'2030-01-16') -Action Cancel
+        $found = Find-McoMeetings -Settings $settings -Request $request
+        @($found.Meetings.Subject) | Should -Be @('S1 Weekly sync')
+        $found.Request.SeriesScope | Should -Be 'Occurrences'
+        $s1 = $found.Meetings[0]
+        $s1.Scope | Should -Be 'Occurrences'
+        $s1.Occurrences | Should -Be 1
+        [MeetingCleanupOnPremNative.Fast]::KindText($s1) | Should -Be '1 occ.'
+        $copies = @($s1.Copies | Where-Object EventId)
+        @($copies.Role | Sort-Object) | Should -Be @('Attendee', 'Organizer', 'Room')
+        @($copies | Where-Object { $_.OccurrenceKey -like '2030-01-16T*' -and $_.SeriesId }).Count | Should -Be 3
+        $found.Counts.OccurrenceCopies | Should -Be 3
+
+        $plan = Get-McoCleanupPlan -Result $found -Action Cancel
+        $plan.Cancel.Count | Should -Be 1
+        $plan.Remove.Count | Should -Be 2
+        ($plan.Lines -join ' ') | Should -Match '0 meeting\(s\) and 1 occurrence\(s\) cancelled'
+        $done = Invoke-McoCleanup -Settings $settings -Result $found -Action Cancel -Comment 'No sync this week.'
+        $done.Status | Should -Be 'Completed'
+        $done.Meetings[0].Status | Should -Be 'Cancelled'
+        $done.Counts.Removed | Should -Be 2
+        # The organizer's occurrence of 16 January cancelled, the attendee's and the room's gone; the series goes on.
+        $series = { param($mailbox) @((Get-FakeCalendar $store $mailbox) | Where-Object { $_.Uid -eq $store.Ids.S1 }) }
+        $org = & $series 'org@contoso.test'
+        @($org | Where-Object Type -eq 'RecurringMaster').Count | Should -Be 1
+        @($org | Where-Object Cancelled | ForEach-Object { $_.Start.ToString('yyyy-MM-dd') }) | Should -Be @('2030-01-16')
+        foreach ($mailbox in 'att1@contoso.test', 'room2@contoso.test') {
+            $left = & $series $mailbox
+            @($left | Where-Object Type -eq 'Occurrence' | ForEach-Object { $_.Start.ToString('MM-dd') }) | Should -Be @('01-09', '01-23', '01-30')
+            @($left | Where-Object Cancelled).Count | Should -Be 0
+        }
+        @($done.Meetings[0].Copies | Where-Object Verified -eq 'Yes').Count | Should -Be 3
+    }
+
+    It 'reads the occurrences from the attendees when the organizer mailbox is gone, and leaves a series whose organizer cannot be read' {
+        $settings = New-TestSettings
+        $store = New-FakeTenant
+        [void](Add-FakeMeeting $store 'L1 Leaver sync' 'left@contoso.test' @('att1@contoso.test') -Rooms @('room2@contoso.test') -Start ([datetime]'2030-01-14T10:00:00Z') -Weeks 3 -NoOrganizerCopy)
+        [void]$store.DenyMailbox.Add('left@contoso.test')
+        Install-FakeEws -Store $store -Settings $settings
+        $r = Find-McoMeetings -Settings $settings -Request (New-McoRequest -Settings $settings -Organizer 'left@contoso.test' -SeriesScope Occurrences -Start ([datetime]'2030-01-21') -End ([datetime]'2030-01-21'))
+        $l1 = @($r.Meetings | Where-Object Subject -eq 'L1 Leaver sync')
+        $l1.Count | Should -Be 1
+        $l1[0].OrganizerCopy | Should -Be 'Mailbox deleted'
+        $l1[0].Occurrences | Should -Be 1
+        @($l1[0].Copies | Where-Object { $_.EventId -and $_.OccurrenceKey -like '2030-01-21T*' }).Count | Should -Be 2
+
+        # The organizer's mailbox answers with an error: the series is left as it is, never the attendees alone.
+        $store = New-FakeTenant
+        $store.MailboxError['org@contoso.test'] = 'ErrorMailboxMoveInProgress'
+        Install-FakeEws -Store $store -Settings $settings
+        $r = Find-McoMeetings -Settings $settings -Request (New-McoRequest -Settings $settings -Organizer 'org@contoso.test' -SeriesScope Occurrences -Start ([datetime]'2030-01-16') -End ([datetime]'2030-01-16'))
+        $s1 = @($r.Meetings | Where-Object Kind -eq 'Series')
+        $s1.Count | Should -Be 1
+        $s1[0].OrganizerCopy | Should -Be 'Not read'
+        @($s1[0].Copies | Where-Object EventId).Count | Should -Be 0
+        ($s1[0].Notes -join ' ') | Should -Match 'Not acted on: the occurrences of its organizer could not be read'
+        $r.Status | Should -Be 'Warning'
+        ($r.Warnings -join ' ') | Should -Match '1 series left as they are'
+        (Get-McoCleanupPlan -Result $r -Action Cancel).Remove.Count | Should -Be 0
+    }
+
+    It 'leaves out the occurrences skipped in a reviewed report, says when every occurrence is in the period, and keeps a transfer for whole series' {
+        $settings = New-TestSettings
+        $store = New-FakeTenant
+        Install-FakeEws -Store $store -Settings $settings
+        $found = Find-McoMeetings -Settings $settings -Request (New-McoRequest -Settings $settings -Organizer 'org@contoso.test' -SeriesScope Occurrences -Start ([datetime]'2030-01-01') -End ([datetime]'2030-01-31'))
+        $s1 = $found.Meetings | Where-Object Subject -like 'S1*'
+        $s1.Occurrences | Should -Be 4
+        ($s1.Notes -join ' ') | Should -Match 'Every occurrence of the series is in the period: each one is acted on separately'
+        $report = Export-McoReport -Result $found -OutputPath $settings.OutputPath -Prefix 'MeetingCleanupOnPrem' -Formats Csv, Html
+        (Import-Csv $report.Files.Meetings -Delimiter ';' | Where-Object Subject -like 'S1*').OccurrencesSkipped | Should -Be '0'
+        Get-Content $report.Files.Html -Raw | Should -Match '"SeriesScope":"Occurrences"'
+
+        # The report reviewed: the occurrence of 23 January left out (SkippedOccurrences, as in Meeting Cleanup).
+        $summary = Get-Content $report.Files.Summary -Raw | ConvertFrom-Json -Depth 32
+        $key = ($s1.Copies | Where-Object { $_.Role -eq 'Organizer' -and $_.OccurrenceKey -like '2030-01-23*' }).OccurrenceKey
+        ($summary.Meetings | Where-Object Subject -like 'S1*').SkippedOccurrences = @($key)
+        [IO.File]::WriteAllText($report.Files.Summary, ($summary | ConvertTo-Json -Depth 32), [Text.UTF8Encoding]::new($false))
+        $source = Import-McoRestoreSource -Path $report.Directory -MeetingId $s1.MeetingId
+        [MeetingCleanupOnPremNative.Fast]::KindText($source.Meetings[0]) | Should -Be '3/4 occ.'
+        $plan = Get-McoCleanupPlan -Result $source -Action Remove
+        $plan.Remove.Count | Should -Be 6
+        $plan.NotSelected.Count | Should -Be 3
+        ($plan.Lines -join ' ') | Should -Match '1 occurrence\(s\) left out in the report'
+        $removed = Invoke-McoCleanup -Settings $settings -Result $source -Action Remove
+        $removed.Counts.Removed | Should -Be 6
+        @($removed.Meetings[0].Copies | Where-Object Result -eq 'Skipped').Count | Should -Be 3
+        @((Get-FakeCalendar $store 'att1@contoso.test') | Where-Object { $_.Uid -eq $store.Ids.S1 -and $_.Type -eq 'Occurrence' } | ForEach-Object { $_.Start.ToString('MM-dd') }) | Should -Be @('01-23')
+        $rows = @([MeetingCleanupOnPremNative.Fast]::MeetingTable($removed.Meetings).ToObjects())
+        $rows[0].OccurrencesSkipped | Should -Be 1
+
+        $plan = Get-McoTransferPlan -Result $source -NewOrganizer (Resolve-McoNewOrganizer -Address 'new@contoso.test') -Comment 'Now organized by {0}.'
+        @($plan.Recreate).Count | Should -Be 0
+        ($plan.Lines -join ' ') + ' ' + (@($plan.Skipped | ForEach-Object Reason) -join ' ') | Should -Match 'occurrences of a series: transfer the whole series'
+    }
+}

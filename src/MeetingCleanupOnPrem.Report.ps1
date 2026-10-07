@@ -16,11 +16,11 @@
 
 .NOTES
     Author  : Nicolas Fabert
-    Version : 1.0.0
+    Version : 1.1.0
 #>
 
 $script:ReportColumns = [ordered]@{
-    Meetings = @('MeetingId', 'Subject', 'Organizer', 'OrganizerName', 'Kind', 'Scope', 'Occurrences', 'StartText', 'EndText', 'NextInPeriod', 'Recurrence', 'Location', 'OrganizerCopy', 'Copies', 'RoomCopies', 'AttendeeCopies', 'NotProcessed', 'Cancelled', 'Selected', 'Status', 'NewOrganizer', 'NewMeetingId', 'TransferMethod', 'Notes')
+    Meetings = @('MeetingId', 'Subject', 'Organizer', 'OrganizerName', 'Kind', 'Scope', 'Occurrences', 'OccurrencesSkipped', 'StartText', 'EndText', 'NextInPeriod', 'Recurrence', 'Location', 'OrganizerCopy', 'Copies', 'RoomCopies', 'AttendeeCopies', 'NotProcessed', 'Cancelled', 'Selected', 'Status', 'NewOrganizer', 'NewMeetingId', 'TransferMethod', 'Notes')
     Copies   = @('MeetingId', 'MeetingSubject', 'Organizer', 'Mailbox', 'Role', 'Via', 'Occurrence', 'Response', 'ShowAs', 'Cancelled', 'Action', 'Result', 'HttpStatus', 'Verified', 'ActionUtc', 'Detail', 'EventId')
     Organizers = @('Input', 'DisplayName', 'PrimaryAddress', 'State', 'Detail', 'Meetings', 'Series', 'Copies', 'Removed', 'Cancelled', 'Restored', 'Transferred', 'Failed')
     Transfers  = @('MeetingId', 'Subject', 'StartText', 'Kind', 'Recurrence', 'OldOrganizer', 'OldOrganizerName', 'OldOrganizerState', 'OldOrganizerDetail', 'NewOrganizer', 'Method', 'Status', 'NewMeetingId', 'NewMeeting', 'NewMeetingDetail', 'Invited', 'Rooms', 'OldOrganizerCopy', 'OldCopiesRemoved', 'OldCopiesFailed', 'OldCopiesLeft', 'Selected', 'Notes')

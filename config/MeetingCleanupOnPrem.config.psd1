@@ -2,7 +2,7 @@
 #  Meeting Cleanup On-Prem - configuration file
 #  --------------------------------------------------------------------------
 #  Author  : Nicolas Fabert
-#  Version : 1.0.0
+#  Version : 1.1.0
 #
 #  Read by Invoke-MeetingCleanupOnPrem.ps1. It is a PowerShell data file: text between quotes, $true / $false,
 #  numbers, @( ) for lists and @{ } for groups of settings. Lines starting with # are comments. Relative paths
@@ -36,11 +36,15 @@
     # ---------------------------------------------------------------------
     # Search. The rooms come from Exchange PowerShell (every room mailbox, AllRooms), plus Rooms and RoomFile. A room outside
     # the scope of the impersonation is not read (warning): set AllRooms = $false and list the rooms concerned.
+    # A series is kept when one of its occurrences falls in the period. SeriesScope: 'Whole' acts on the whole
+    # series (every occurrence, past ones included); 'Occurrences' only on its occurrences in the period
+    # (-SeriesScope). Rooms mode always acts on the occurrences of the period.
     # ---------------------------------------------------------------------
     Search = @{
         SearchIn        = @('Organizer', 'Rooms')   # Organizer | Rooms | Mailboxes | AllMailboxes
         PastDays        = 0                          # default period: today minus PastDays ...
         FutureDays      = 365                        # ... to today plus FutureDays
+        SeriesScope     = 'Whole'                    # Whole | Occurrences
         Rooms           = @()                        # rooms added to those of Exchange PowerShell
         RoomFile        = ''                         # a file of rooms (one address per line, or CSV)
         Mailboxes       = @()                        # the mailboxes of -SearchIn Mailboxes

@@ -92,12 +92,13 @@ function Get-McoSearchMailboxes {
 function New-McoCopy {
     param([Parameter(Mandatory)]$Event, [Parameter(Mandatory)][string]$Role, [string]$Via, [string]$Result = '', [string]$Detail = '')
     $isOccurrence = [string]$Event.AppointmentType -in 'Occurrence', 'Exception'
+    $when = if ($isOccurrence) { ([datetime]$Event.Start).ToString('o') } else { '' }
     [pscustomobject]@{
         MeetingId = $Event.MeetingId; Mailbox = ([string]$Event.Mailbox).ToLowerInvariant(); Role = $Role; Via = $Via
         EventId = $Event.EventId; Subject = $Event.Subject; Response = $Event.Response; ShowAs = ''
         Cancelled = [bool]$Event.IsCancelled; Action = ''; Result = $Result; HttpStatus = 0; Detail = $Detail; Verified = ''; ActionUtc = ''
-        Occurrence = if ($isOccurrence) { ([datetime]$Event.Start).ToString('o') } else { '' }
-        OccurrenceStart = if ($isOccurrence) { ([datetime]$Event.Start).ToString('o') } else { '' }
+        # OccurrenceKey: the slot of the occurrence (its start, UTC), the same in every copy; the key of SkippedOccurrences.
+        Occurrence = $when; OccurrenceStart = $when; OccurrenceKey = $when
         SeriesId = [string](Get-McoProperty $Event 'SeriesId'); Event = $Event
     }
 }
@@ -107,7 +108,7 @@ function New-McoPlaceholderCopy {
     param([Parameter(Mandatory)]$Meeting, [Parameter(Mandatory)][string]$Mailbox, [Parameter(Mandatory)][string]$Role, [Parameter(Mandatory)][string]$Via, [Parameter(Mandatory)][string]$Result, [Parameter(Mandatory)][string]$Detail)
     [pscustomobject]@{
         MeetingId = $Meeting.MeetingId; Mailbox = $Mailbox; Role = $Role; Via = $Via; EventId = ''; Subject = $Meeting.Subject; Response = ''; ShowAs = ''
-        Cancelled = $false; Action = ''; Result = $Result; HttpStatus = 0; Detail = $Detail; Verified = ''; ActionUtc = ''; Occurrence = ''; OccurrenceStart = ''; SeriesId = ''; Event = $null
+        Cancelled = $false; Action = ''; Result = $Result; HttpStatus = 0; Detail = $Detail; Verified = ''; ActionUtc = ''; Occurrence = ''; OccurrenceStart = ''; OccurrenceKey = ''; SeriesId = ''; Event = $null
     }
 }
 
@@ -131,6 +132,7 @@ function New-McoMeeting {
         Attendees = $attendees.ToArray()
         Copies = [Collections.Generic.List[object]]::new(); Selected = $true; Status = 'Found'; Notes = [Collections.Generic.List[string]]::new()
         SubjectFromRoom = $false; Scope = 'Whole'; Occurrences = $occ.Count; RecurrenceData = $null; TimeZone = $fast::Text($Event, 'TimeZoneId'); NewOrganizer = ''; NewMeetingId = ''; TransferMethod = ''
+        SkippedOccurrences = @()
     }
 }
 
@@ -162,6 +164,26 @@ function Get-McoCopyRole {
     'Attendee'
 }
 
+function Test-McoSeriesInPeriod {
+    <#
+        Whether every occurrence of a series falls in the period: a numbered series by its count of occurrences, a
+        series with an end date by its dates; a series without end never.
+    #>
+    param([AllowEmptyString()][string]$RecurrenceXml, [int]$Count, [datetime]$Start, [datetime]$End, [AllowEmptyString()][string]$TimeZone)
+    if (-not $RecurrenceXml) { return $false }
+    $numbered = [regex]::Match($RecurrenceXml, 'NumberOfOccurrences>\s*(\d+)\s*<')
+    if ($numbered.Success) { return $Count -ge [int]$numbered.Groups[1].Value }
+    if ($RecurrenceXml -notmatch 'EndDateRecurrence') { return $false }
+    $first = [regex]::Match($RecurrenceXml, 'StartDate>\s*(\d{4}-\d{2}-\d{2})')
+    $last = [regex]::Match($RecurrenceXml, 'EndDate>\s*(\d{4}-\d{2}-\d{2})')
+    if (-not $first.Success -or -not $last.Success) { return $false }
+    $zone = Get-McoTimeZone $TimeZone
+    $from = [TimeZoneInfo]::ConvertTimeFromUtc($Start.ToUniversalTime(), $zone).Date
+    $to = [TimeZoneInfo]::ConvertTimeFromUtc($End.ToUniversalTime().AddSeconds(-1), $zone).Date
+    $inv = [Globalization.CultureInfo]::InvariantCulture
+    [datetime]::ParseExact($first.Groups[1].Value, 'yyyy-MM-dd', $inv) -ge $from -and [datetime]::ParseExact($last.Groups[1].Value, 'yyyy-MM-dd', $inv) -le $to
+}
+
 function Find-McoMeetings {
     [CmdletBinding()]
     param([Parameter(Mandatory)][hashtable]$Settings, [Parameter(Mandatory)][pscustomobject]$Request)
@@ -185,11 +207,15 @@ function Find-McoMeetingsCore {
     $dot = $script:Dot
     $warnings = [Collections.Generic.List[string]]::new()
     $roomsMode = $Request.Mode -eq 'Rooms'
+    # A series acted on by its occurrences in the period: always in rooms mode, on demand for organizers.
+    $byOccurrence = -not $roomsMode -and [string](Get-McoProperty $Request 'SeriesScope') -eq 'Occurrences'
+    $occurrencesMode = $roomsMode -or $byOccurrence
     $directory = [string]$Settings.DirectoryMode -ne 'None'
     Write-McoNextStep $(if ($roomsMode) { "Rooms ($(@($Request.Room).Count))" } else { 'Organizers' }) $(if ($roomsMode) { 'Room' } else { 'User' })
     $organizers = @(if (-not $roomsMode) { Resolve-McoOrganizer -Identity $Request.Organizer -Settings $Settings })
     foreach ($o in $organizers) { Write-McoItem $(if ($o.State -eq 'Mailbox') { 'Ok' } else { 'Info' }) ("{0} {1} {2}{3}" -f $(if ($o.DisplayName) { "$($o.DisplayName) <$($o.PrimaryAddress)>" } else { $o.Input }), $dot, $o.Detail, $(if (@($o.Addresses).Count -gt 1) { " $dot $(@($o.Addresses).Count) addresses compared" } else { '' })) -Icon User }
     if ($roomsMode) { foreach ($r in @($Request.Room)) { Write-McoItem Info $r -Icon Room } }
+    if ($byOccurrence) { Write-McoItem Info 'A series: only its occurrences in the period are acted on (a period of one day: one occurrence); the series goes on outside the period.' }
     $addressMap = @{}
     foreach ($o in $organizers) { foreach ($a in $o.Addresses) { $addressMap[([string]$a).ToLowerInvariant()] = $o } }
     $orgMailboxes = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
@@ -222,7 +248,7 @@ function Find-McoMeetingsCore {
     $done = 0
     foreach ($mb in $mailboxes) {
         $events = $null
-        try { $events = Get-McoMailboxEvents -Mailbox $mb.Address -StartUtc $Request.Start -EndUtc $Request.End -PageSize ([int]$Settings.PageSize) -Occurrences:$roomsMode; $searched.Read++ }
+        try { $events = Get-McoMailboxEvents -Mailbox $mb.Address -StartUtc $Request.Start -EndUtc $Request.End -PageSize ([int]$Settings.PageSize) -Occurrences:$occurrencesMode; $searched.Read++ }
         catch {
             $text = $_.Exception.Message
             if ($text -match 'ErrorNonExistentMailbox|ErrorMailboxNotFound|ErrorInvalidSmtpAddress') { $searched.NoMailbox++ } elseif ($text -match 'ErrorImpersonat|ErrorAccessDenied') { $searched.Denied++ } else { $searched.Errors++ }
@@ -315,7 +341,7 @@ function Find-McoMeetingsCore {
     foreach ($target in @($uidsOf.Keys)) {
         $byUid = @{}
         try {
-            foreach ($hit in @(Get-McoMailboxEvents -Mailbox $target -StartUtc $Request.Start -EndUtc $Request.End -PageSize ([int]$Settings.PageSize) -Uid @($uidsOf[$target]) -Occurrences:$roomsMode)) {
+            foreach ($hit in @(Get-McoMailboxEvents -Mailbox $target -StartUtc $Request.Start -EndUtc $Request.End -PageSize ([int]$Settings.PageSize) -Uid @($uidsOf[$target]) -Occurrences:$occurrencesMode)) {
                 if ($null -eq $hit) { continue }
                 $list = $byUid[$hit.MeetingId]
                 if (-not $list) { $list = [Collections.Generic.List[object]]::new(); $byUid[$hit.MeetingId] = $list }
@@ -328,6 +354,7 @@ function Find-McoMeetingsCore {
         Write-McoProgress ($done / [Math]::Max(1, $uidsOf.Count)) ('{0:N0}/{1:N0} attendee mailboxes searched' -f $done, $uidsOf.Count)
     }
     # ---- 3. the copies of each meeting, in the order of its attendees -----------------------------------------------
+    $organizerUnread = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     foreach ($a in $actions) {
         $meeting = $a.Meeting; $target = $a.Target; $role = $a.Role
         if ($withCopy[$meeting.MeetingId].Contains($target)) { continue }
@@ -337,6 +364,7 @@ function Find-McoMeetingsCore {
         if ($f.Error) {
             $why = if ($f.Error -match 'ErrorNonExistentMailbox|ErrorMailboxNotFound|ErrorInvalidSmtpAddress') { 'no mailbox with this address (deleted or not a mailbox)' } else { $f.Error }
             $meeting.Copies.Add((New-McoPlaceholderCopy -Meeting $meeting -Mailbox $target -Role $role -Via $a.Via -Result 'Not processed' -Detail $why))
+            if ($role -eq 'Organizer' -and $why -ne 'no mailbox with this address (deleted or not a mailbox)') { [void]$organizerUnread.Add($meeting.MeetingId) }
             continue
         }
         $hits = [Collections.Generic.List[object]]::new()
@@ -347,6 +375,43 @@ function Find-McoMeetingsCore {
         }
         foreach ($hit in $hits) { & $addCopy $meeting $hit (Get-McoCopyRole -Event $hit -RoomSet $roomSet -Settings $Settings) $a.Via }
         if (-not $hits.Count) { $meeting.Copies.Add((New-McoPlaceholderCopy -Meeting $meeting -Mailbox $target -Role $role -Via $a.Via -Result 'Not found' -Detail $(if ($role -eq 'Organizer') { 'not in the calendar of its organizer' } else { 'no copy of this meeting in the mailbox' }))) }
+    }
+    # ---- 3b. series by occurrences (organizers): the occurrences of the period in the organizer's calendar, or in
+    # every copy when the organizer has none (deleted mailbox); the copies of other occurrences are left out. ----------
+    $leftSeries = @{}
+    if ($byOccurrence) {
+        foreach ($meeting in @($meetings.Values)) {
+            if ($meeting.Kind -ne 'Series') { continue }
+            if ($organizerUnread.Contains($meeting.MeetingId)) { $leftSeries[$meeting.MeetingId] = 'the occurrences of its organizer could not be read'; continue }
+            $fromOrganizer = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+            $fromAll = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+            foreach ($c in $meeting.Copies) {
+                if (-not $c.EventId -or -not $c.OccurrenceKey) { continue }
+                [void]$fromAll.Add([string]$c.OccurrenceKey)
+                if ($c.Role -eq 'Organizer') { [void]$fromOrganizer.Add([string]$c.OccurrenceKey) }
+            }
+            $keys = $fromAll
+            if ($fromOrganizer.Count) { $keys = $fromOrganizer }
+            if (-not $keys.Count) { $leftSeries[$meeting.MeetingId] = 'no copy whose occurrences could be read'; continue }
+            # A mailbox keeps the occurrences that count; one left with none of them is said (Not found), once.
+            $holding = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+            foreach ($c in $meeting.Copies) { if ($c.EventId -and (-not $c.OccurrenceKey -or $keys.Contains([string]$c.OccurrenceKey))) { [void]$holding.Add("$($c.Mailbox)|$($c.Role)") } }
+            $list = [Collections.Generic.List[object]]::new()
+            $said = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+            foreach ($c in $meeting.Copies) {
+                if (-not $c.EventId -or -not $c.OccurrenceKey -or $keys.Contains([string]$c.OccurrenceKey)) { $list.Add($c); continue }
+                $who = "$($c.Mailbox)|$($c.Role)"
+                if (-not $holding.Contains($who) -and $said.Add($who)) { $list.Add((New-McoPlaceholderCopy -Meeting $meeting -Mailbox $c.Mailbox -Role $c.Role -Via $c.Via -Result 'Not found' -Detail 'no occurrence of the period in this mailbox (declined, removed or moved)')) }
+            }
+            $meeting.Copies.Clear()
+            foreach ($c in $list) { $meeting.Copies.Add($c) }
+        }
+        # Never the attendees without their organizer, never the whole series: a series whose occurrences cannot be
+        # known is left as it is.
+        foreach ($id in $leftSeries.Keys) {
+            foreach ($c in $meetings[$id].Copies) { if ($c.EventId) { $c.EventId = ''; $c.Result = 'Not processed'; $c.Detail = "the series is left as it is: $($leftSeries[$id])" } }
+            $meetings[$id].Notes.Add("Not acted on: $($leftSeries[$id]). Acting on the attendees only, or on the whole series, would not be right.")
+        }
     }
     # ---- 4. each meeting: organizer copy, subject, occurrences (one pass over its copies) ---------------------------
     $total = 0; $roomCopies = 0; $skipped = 0; $present = 0
@@ -361,15 +426,27 @@ function Find-McoMeetingsCore {
                 if ($c.Subject -and $c.Role -in 'Organizer', 'Attendee') { $rk = if ($c.Role -eq 'Organizer') { 0 } else { 1 }; if ($rk -lt $betterRank) { $betterRank = $rk; $better = $c } }
             }
             elseif ($c.Role -eq 'Organizer' -and $c.Detail -match 'no mailbox') { $orgDeleted = $true }
-            if ($c.Occurrence) { [void]$occ.Add([string]$c.Occurrence) }
+            if ($c.EventId -and $c.Occurrence) { [void]$occ.Add([string]$c.Occurrence) }
             if ($c.Result -eq 'Not processed') { $skipped++ }
         }
         # A room shows the organizer's name as subject: once the organizer or an attendee copy is found, its subject wins.
         if ($better -and $meeting.SubjectFromRoom) { $meeting.Subject = $better.Subject; $meeting.SubjectFromRoom = $false }
-        $meeting.OrganizerCopy = if ($orgCopy) { 'Present' } elseif ($orgDeleted) { 'Mailbox deleted' } else { 'Absent' }
+        $meeting.OrganizerCopy = if ($orgCopy) { 'Present' } elseif ($orgDeleted) { 'Mailbox deleted' } elseif ($organizerUnread.Contains($meeting.MeetingId) -and $leftSeries.Contains($meeting.MeetingId)) { 'Not read' } else { 'Absent' }
         if ($orgCopy) { $present++ }
-        if ($roomsMode -and $meeting.Kind -eq 'Series') { $meeting.Scope = 'Occurrences' }
-        if ($roomsMode) { $meeting.Occurrences = $occ.Count }
+        if ($occurrencesMode -and $meeting.Kind -eq 'Series') {
+            $meeting.Scope = 'Occurrences'
+            if (-not $leftSeries.Contains($meeting.MeetingId)) {
+                # Asked for by occurrence, every occurrence in the period: each one is still acted on (said, not changed).
+                if ($byOccurrence -and $occ.Count) {
+                    $reference = Get-McoBestCopy $meeting -WithEvent
+                    if ($reference -and (Test-McoSeriesInPeriod -RecurrenceXml ([MeetingCleanupOnPremNative.Fast]::Text($reference.Event, 'RecurrenceXml')) -Count $occ.Count -Start $Request.Start -End $Request.End -TimeZone $Settings.TimeZone)) {
+                        $meeting.Notes.Add('Every occurrence of the series is in the period: each one is acted on separately (one cancellation each with Cancel); -SeriesScope Whole acts on the series at once.')
+                    }
+                }
+                $meeting.Notes.Add(('{0} occurrence(s) in the period{1}: only they are acted on, the series goes on outside the period.' -f $occ.Count, $(if ($roomsMode) { ' in the rooms searched' } else { '' })))
+            }
+        }
+        if ($occurrencesMode) { $meeting.Occurrences = $occ.Count }
     }
     if ($meetings.Count) {
         Write-McoItem Ok ('{0:N0} cop{1} of {2:N0} meeting(s) {3} {4:N0} in rooms {3} organizer copy present for {5:N0} {3} {6:N0} attendee mailbox(es) searched' -f $total, $(if ($total -eq 1) { 'y' } else { 'ies' }), $meetings.Count, $dot, $roomCopies, $present, $uidsOf.Count) -Icon People
@@ -383,6 +460,17 @@ function Find-McoMeetingsCore {
         $list = @($list | Where-Object { $_.Subject -like $pattern })
         Write-McoItem Info ("Subject '{0}': {1} of {2} meeting(s) kept" -f $Request.Subject, $list.Count, $before)
     }
+    if ($occurrencesMode) {
+        $limited = 0; $occurrenceCopies = 0; $leftCount = 0
+        foreach ($m in $list) {
+            if ($m.Scope -ne 'Occurrences') { continue }
+            if ($leftSeries.Contains($m.MeetingId)) { $leftCount++; continue }
+            $limited++
+            foreach ($c in $m.Copies) { if ($c.EventId -and $c.Occurrence) { $occurrenceCopies++ } }
+        }
+        if ($limited -or $leftCount) { Write-McoItem Info ('{0} series limited to their occurrences in the period ({1:N0} occurrence copies){2}' -f $limited, $occurrenceCopies, $(if ($leftCount) { " $dot $leftCount left as they are (occurrences not read)" } else { '' })) -Icon Calendar }
+        if ($leftCount) { $text = '{0} series left as they are: the occurrences of their organizer could not be read (see the notes).' -f $leftCount; $warnings.Add($text); Write-McoItem Warn $text }
+    }
     $list = @($list | Sort-Object Start, Subject)
     if ($roomsMode) {
         $organizers = @($list | Group-Object Organizer | ForEach-Object {
@@ -395,7 +483,7 @@ function Find-McoMeetingsCore {
     $result = [pscustomobject]@{
         Tool = 'Meeting Cleanup On-Prem'; Version = $script:ToolVersion; Action = 'Report'; Status = 'Completed'; Error = ''
         StartedUtc = $started.ToString('o'); CompletedUtc = [datetime]::UtcNow.ToString('o'); DurationSeconds = [Math]::Round(([datetime]::UtcNow - $started).TotalSeconds, 1)
-        Request = [pscustomobject]@{ Mode = $Request.Mode; Organizer = @($Request.Organizer); Room = @($Request.Room); Start = $Request.Start.ToString('o'); End = $Request.End.ToString('o'); StartText = Format-McoDate $Request.Start $Settings.TimeZone; EndText = Format-McoDate $Request.End $Settings.TimeZone -PeriodEnd; Subject = $Request.Subject; MeetingId = @($Request.MeetingId); SearchIn = @($Request.SearchIn); TimeZone = (Get-McoTimeZone $Settings.TimeZone).Id }
+        Request = [pscustomobject]@{ Mode = $Request.Mode; Organizer = @($Request.Organizer); Room = @($Request.Room); Start = $Request.Start.ToString('o'); End = $Request.End.ToString('o'); StartText = Format-McoDate $Request.Start $Settings.TimeZone; EndText = Format-McoDate $Request.End $Settings.TimeZone -PeriodEnd; Subject = $Request.Subject; MeetingId = @($Request.MeetingId); SearchIn = @($Request.SearchIn); SeriesScope = $(if ($occurrencesMode) { 'Occurrences' } else { 'Whole' }); TimeZone = (Get-McoTimeZone $Settings.TimeZone).Id }
         Tenant = 'Exchange Server On-Premises'; Organization = [string]$Settings.Mailbox.Split('@')[-1]; AppId = ''; AppName = "EWS $($script:Ews.Url)"; Organizers = @($organizers); Searched = [pscustomobject]$searched; Meetings = [Collections.Generic.List[object]]::new(); Warnings = $warnings; Counts = $null
     }
     foreach ($m in $list) { $result.Meetings.Add($m) }
@@ -411,6 +499,8 @@ function Add-McoMeetingDefaults {
     }
     if (-not $Meeting.PSObject.Properties['Selected']) { $Meeting | Add-Member -NotePropertyName Selected -NotePropertyValue $true }
     if (-not $Meeting.PSObject.Properties['Status']) { $Meeting | Add-Member -NotePropertyName Status -NotePropertyValue 'Found' }
+    # Reports of 1.0.0: the occurrences left out of a series (SkippedOccurrences), none.
+    if (-not $Meeting.PSObject.Properties['SkippedOccurrences']) { $Meeting | Add-Member -NotePropertyName SkippedOccurrences -NotePropertyValue @() }
 }
 
 function Update-McoResultCounts {

@@ -28,6 +28,7 @@ function Get-McoTransferPlan {
         $occ = @(if ($ref) { @($ref.Event.Occurrences) | Where-Object { $_ -and ([datetime]$_.Start).ToUniversalTime() -gt $now } })
         $reason = if ($new -contains [string]$meeting.Organizer -or $new -contains [string]$meeting.OrganizerKey) { "already organized by $($NewOrganizer.Address)" }
             elseif ([string](Get-McoProperty $meeting 'NewMeetingId')) { "already transferred by the run of this report (to $(Get-McoProperty $meeting 'NewOrganizer'))" }
+            elseif ([string](Get-McoProperty $meeting 'Scope') -eq 'Occurrences') { 'occurrences of a series: transfer the whole series (search its organizer with -SeriesScope Whole)' }
             elseif ($meeting.Cancelled) { 'cancelled meeting' }
             elseif (-not $ref) { 'no copy to read the meeting from' }
             elseif ($meeting.Kind -ne 'Series' -and ([datetime]$meeting.End).ToUniversalTime() -le $now) { 'already over' }

@@ -30,7 +30,7 @@
 
 .NOTES
     Author  : Nicolas Fabert
-    Version : 1.0.0  (from Meeting Cleanup 1.2.3)
+    Version : 1.1.0  (from Meeting Cleanup 1.3.0)
     Part of : Meeting Cleanup On-Prem (repository tool, not in the package)
 #>
 [CmdletBinding()]

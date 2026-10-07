@@ -14,10 +14,12 @@
       Transfer  -NewOrganizer: the meeting is re-created and sent by the new organizer (a series from its next
                 occurrence), the old one is cancelled by its organizer or removed silently.
     Remove, Cancel and Transfer write a backup first and ask to type YES (-Force skips it).
+    A series is acted on whole; -SeriesScope Occurrences (Search.SeriesScope) limits it to its occurrences in the
+    period (a period of one day: one occurrence; give -Start and -End with an action). Rooms mode always does.
 
 .NOTES
     Author  : Nicolas Fabert
-    Version : 1.0.0
+    Version : 1.1.0
     Console : a live progress line (bar, part done, time left) in an interactive console; colours off when the
               output is redirected or NO_COLOR is set (MCO_FORCE_COLOR=1 forces them); MCO_ICONS = Emoji |
               Symbols | Ascii forces the style of the icons.
@@ -37,6 +39,7 @@ param(
     [datetime]$Start,
     [datetime]$End,
     [string]$Subject,
+    [ValidateSet('Whole', 'Occurrences')][string]$SeriesScope,
     [string[]]$MeetingId,
     [ValidateSet('Organizer', 'Rooms', 'Mailboxes', 'AllMailboxes')][string[]]$SearchIn,
     [ValidateSet('Report', 'Remove', 'Cancel', 'Restore', 'Transfer')][string]$Action = 'Report',
@@ -86,7 +89,7 @@ try {
     $check = Test-McoConfiguration $settings
     if (-not $check.IsValid) { throw ("Invalid value:`n - " + ($check.Problems -join "`n - ")) }
     $logPath = Start-McoLog -Directory $settings.LogPath -RetentionDays $settings.LogRetentionDays
-    $request = New-McoRequest -Settings $settings -Organizer $Organizer -OrganizerFile $OrganizerFile -Room $Room -RoomFile $RoomFile -Mailbox $Mailbox -MailboxFile $MailboxFile -Start $(if ($PSBoundParameters.ContainsKey('Start')) { $Start } else { $null }) -End $(if ($PSBoundParameters.ContainsKey('End')) { $End } else { $null }) -Subject $Subject -MeetingId $MeetingId -SearchIn $SearchIn -Action $Action -Comment $Comment -FromReport $FromReport -NewOrganizer $NewOrganizer
+    $request = New-McoRequest -Settings $settings -Organizer $Organizer -OrganizerFile $OrganizerFile -Room $Room -RoomFile $RoomFile -Mailbox $Mailbox -MailboxFile $MailboxFile -Start $(if ($PSBoundParameters.ContainsKey('Start')) { $Start } else { $null }) -End $(if ($PSBoundParameters.ContainsKey('End')) { $End } else { $null }) -Subject $Subject -MeetingId $MeetingId -SearchIn $SearchIn -Action $Action -Comment $Comment -FromReport $FromReport -NewOrganizer $NewOrganizer -SeriesScope $SeriesScope
     $requestCheck = Test-McoRequest $request
     if (-not $requestCheck.IsValid) { throw ("Cannot run:`n - " + ($requestCheck.Problems -join "`n - ")) }
     Write-McoRunBanner -Settings $settings -Request $request -LogPath $logPath -NoReport:$NoReport

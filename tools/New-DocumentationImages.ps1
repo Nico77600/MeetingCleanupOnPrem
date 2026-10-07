@@ -15,7 +15,7 @@
 
 .NOTES
     Author  : Nicolas Fabert
-    Version : 1.0.0
+    Version : 1.1.0
     Part of : Meeting Cleanup On-Prem (repository tool, not in the package)
 #>
 #Requires -Version 7.4

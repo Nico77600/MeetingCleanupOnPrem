@@ -1,14 +1,14 @@
 ---
 title: Meeting Cleanup On-Prem
 subtitle: User guide
-version: 1.0.0
+version: 1.1.0
 author: Nicolas Fabert
 updated: 2026-10-07
 ---
 
 # Meeting Cleanup On-Prem — User guide
 
-> What you need before the first run, then one command per everyday question: **which meetings does this person still organize?**, **a person has left: cancel their meetings, or give them to someone else?**, **one series to remove without a message**, **rooms closed for works**, **undo a removal**. How the tool works, the rights in detail, the configuration, the report and the internals are in the [developer guide](MeetingCleanupOnPrem-Guide.md).
+> What you need before the first run, then one command per everyday question: **which meetings does this person still organize?**, **a person has left: cancel their meetings, or give them to someone else?**, **one series to remove without a message**, **one occurrence of a series**, **rooms closed for works**, **undo a removal**. How the tool works, the rights in detail, the configuration, the report and the internals are in the [developer guide](MeetingCleanupOnPrem-Guide.md).
 
 > [!IMPORTANT]
 > Files downloaded from the Internet may be blocked by Windows and fail to run. Before using this project, unblock every file in the downloaded folder:
@@ -73,7 +73,7 @@ Get-Credential CONTOSO\svc-meetingcleanup | Export-Clixml C:\Tools\MeetingCleanu
 Run the commands from the tool folder, in PowerShell 7. A command without `-Action` is a **report**: it finds the meetings and every copy of them (organizer, attendees, rooms, members of the groups invited) and **changes nothing**. Read the report, then run the same command with an action: *Remove*, *Cancel*, *Transfer* and *Restore* show exactly what will happen and ask to type **YES**; a backup is written before any change.
 
 > [!IMPORTANT]
-> Always start with a report. A silent removal can be undone for 14 days (2.8); a **cancellation cannot be undone**: the attendees received it.
+> Always start with a report. A silent removal can be undone for 14 days (2.9); a **cancellation cannot be undone**: the attendees received it.
 
 ### 2.1 Which meetings does this person still organize?
 
@@ -123,7 +123,17 @@ Jane becomes the organizer of every meeting still to come. Exchange Server canno
 
 The copies of the attendees and the rooms are removed, nobody receives anything; a series goes whole. The organizer's own meeting stays (*Kept*) — choose *Cancel* to cancel it with a message.
 
-### 2.6 Rooms closed for works
+### 2.6 One occurrence of a series
+
+```powershell
+# Not this Monday: the occurrence of 16 November only, cancelled for everyone
+.\Invoke-MeetingCleanupOnPrem.ps1 -Organizer megan.bowen@contoso.com -Subject 'Weekly sales review' -SeriesScope Occurrences `
+    -Start 2026-11-16 -End 2026-11-16 -Action Cancel -Comment 'No sales review this Monday.'
+```
+
+With `-SeriesScope Occurrences`, a series is limited to its occurrences in the period: *Cancel* sends one cancellation for that date only, *Remove* takes the occurrence out of the attendees' and rooms' calendars without a message (the organizer keeps it). The series goes on. The period is required with an action. An occurrence removed cannot be restored.
+
+### 2.7 Rooms closed for works
 
 ```powershell
 .\Invoke-MeetingCleanupOnPrem.ps1 -Room room-paris-01@contoso.com, room-paris-02@contoso.com -Start 2026-11-02 -End 2026-11-13 `
@@ -132,7 +142,7 @@ The copies of the attendees and the rooms are removed, nobody receives anything;
 
 Every meeting of these rooms in the period, whoever organized it. A series loses only its occurrences in the period, and goes on after. The period is required with an action.
 
-### 2.7 The leavers of the month
+### 2.8 The leavers of the month
 
 ```powershell
 .\Invoke-MeetingCleanupOnPrem.ps1 -OrganizerFile .\leavers-2026-10.txt -SearchIn Organizer, Rooms
@@ -140,15 +150,15 @@ Every meeting of these rooms in the period, whoever organized it. A series loses
 
 A text file with one address per line, or a CSV file (`PrimarySmtpAddress`, `UserPrincipalName`, `Address`...): each mailbox is read once for all of them, and the report has an *Organizers* tab.
 
-### 2.8 Undo a Remove
+### 2.9 Undo a Remove
 
 ```powershell
 .\Invoke-MeetingCleanupOnPrem.ps1 -Action Restore -FromReport .\reports\MeetingCleanupOnPrem_Remove_20261006-001346
 ```
 
-The copies come back from Recoverable Items, as they were, **without a message**: an accepted room is busy again. It works for the retention of deleted items (**14 days** by default) and needs the role of [Rights for Restore](MeetingCleanupOnPrem-Guide.md#rights-for-restore). A cancelled or transferred meeting, and an occurrence removed in rooms mode, cannot be restored.
+The copies come back from Recoverable Items, as they were, **without a message**: an accepted room is busy again. It works for the retention of deleted items (**14 days** by default) and needs the role of [Rights for Restore](MeetingCleanupOnPrem-Guide.md#rights-for-restore). A cancelled or transferred meeting, and an occurrence removed (rooms mode, `-SeriesScope Occurrences`), cannot be restored.
 
-### 2.9 In a scheduled task
+### 2.10 In a scheduled task
 
 ```powershell
 pwsh -NoProfile -File C:\Tools\MeetingCleanupOnPrem\Invoke-MeetingCleanupOnPrem.ps1 -OrganizerFile C:\Tools\leavers.txt -Action Cancel -Comment 'This meeting is cancelled.' -Force
@@ -166,6 +176,7 @@ pwsh -NoProfile -File C:\Tools\MeetingCleanupOnPrem\Invoke-MeetingCleanupOnPrem.
 | `-Room` · `-RoomFile` | Rooms mode: every meeting of these rooms, whatever its organizer | `-Room room-paris-01@contoso.com` |
 | `-Start` · `-End` | The period (an end date without a time is included). Default: the coming year | `-Start 2026-11-01 -End 2026-12-31` |
 | `-Subject` | The subject contains this text (`*` and `?` allowed) | `-Subject 'Weekly*'` |
+| `-SeriesScope` | `Whole` (default): a series is acted on whole. `Occurrences`: only its occurrences in the period (a period of one day = one occurrence) | `-SeriesScope Occurrences` |
 | `-MeetingId` | Only these meetings (column *MeetingId* of a report) | `-MeetingId 040000008200E0...` |
 | `-SearchIn` | Where to search (below). Default: `Organizer`, `Rooms` | `-SearchIn Rooms, AllMailboxes` |
 | `-Mailbox` · `-MailboxFile` | The mailboxes of `-SearchIn Mailboxes` | `-MailboxFile .\team.txt` |
@@ -183,7 +194,7 @@ pwsh -NoProfile -File C:\Tools\MeetingCleanupOnPrem\Invoke-MeetingCleanupOnPrem.
 | `Mailboxes` | The mailboxes of `-Mailbox` / `-MailboxFile` | A deleted organizer, meetings without room: his team. |
 | `AllMailboxes` | Every mailbox of the organization (Exchange PowerShell) | A deleted organizer, meetings without room, team unknown. |
 
-A series is found when one of its occurrences falls in the period, and is handled as a whole (in rooms mode: its occurrences in the period only).
+A series is found when one of its occurrences falls in the period, and is handled as a whole — with `-SeriesScope Occurrences` and in rooms mode: its occurrences in the period only.
 
 The connection comes from the configuration; these parameters override it for one run: `-EwsUrl`, `-EwsMailbox` (the account that signs in), `-Authentication Windows | Basic`, `-AccessMode Impersonation | Delegate | Self`, `-CredentialUser` (asks for the password), `-ManagementShellMode Existing | Auto | Rps`, `-ManagementShellServer`, `-ManagementShellUri`, `-ConfigPath`.
 
@@ -221,5 +232,6 @@ Each run writes a new folder under `reports\`, named after the action and the ti
 | *Get-RecoverableItems is not available* | The role Mailbox Import Export is missing, or not applied yet (open a new session). |
 | *more than 500 items at ..., raise Connection.PageSize* | A calendar holds more items starting at the same time than a page: raise `Connection.PageSize` (up to 1,000). |
 | *Confirmation needed: run interactively, or add -Force* | An action without a console (scheduled task): add `-Force`. |
+| *Series by occurrences: give the period of the action* | `-SeriesScope Occurrences` (or `Search.SeriesScope`) with *Remove* or *Cancel*: give `-Start` and `-End`. |
 
 Anything else: [developer guide, Appendix A — Troubleshooting](MeetingCleanupOnPrem-Guide.md#appendix-a---troubleshooting); every status and column of the report: [developer guide, chapter 10](MeetingCleanupOnPrem-Guide.md#10-reading-the-report).

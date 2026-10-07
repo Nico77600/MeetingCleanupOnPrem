@@ -45,6 +45,7 @@ This tool does it for **Exchange Server** (2016, 2019, Subscription Edition) wit
 - **Every copy, wherever the meeting is found**: one copy of a meeting holds its whole attendee list. Every internal attendee, room and member of an invited group is then asked for its own copy, by **UID** (the same in every copy). External attendees are listed, not processed.
 - **Organizer present or gone**: its calendar when the mailbox exists; every room, a list of mailboxes or every mailbox of the organization when it does not — from the old address or the **X500 address** of the deleted mailbox. A list of organizers is searched in one pass.
 - **Rooms over a period** (`-Room`, `-RoomFile`): every meeting of the rooms, whatever its organizer. A series is limited to the occurrences the rooms hold in the period; it goes on before and after.
+- **One occurrence of a series** (`-SeriesScope Occurrences`): a series of an organizer limited to its occurrences in the period — with a period of one day, one occurrence. *Cancel* sends one cancellation for that date only; the series goes on.
 - **Nothing by surprise**: the report is the default action. Every action shows exactly what it will do and asks to type **YES**; a backup (`Backup.json`) is written before any change; each copy removed is read again to check it is gone. `-FromReport` acts on exactly the meetings of a reviewed report.
 - **Large organizations**: each calendar is read once per search, page after page, the details 50 items per call; a request Exchange is too busy to process (throttling) is sent again after the delay it asks for. The console shows a live progress line with the time left.
 - **One service account** with ApplicationImpersonation (limited by a management scope), **EWS** called directly and **Exchange PowerShell** opened by the tool (remote PowerShell): no module to install.
@@ -117,7 +118,7 @@ Each run writes `MeetingCleanupOnPrem-Meetings.csv`, `-Copies.csv`, `-Organizers
 Download `MeetingCleanupOnPrem-<version>.zip` from the [latest release](https://github.com/Nico77600/MeetingCleanupOnPrem/releases/latest), extract it (for example in `C:\Tools`) and unblock the files (command at the top of this page).
 
 ```powershell
-cd C:\Tools\MeetingCleanupOnPrem-1.0.0
+cd C:\Tools\MeetingCleanupOnPrem-1.1.0
 notepad .\config\MeetingCleanupOnPrem.config.psd1     # EWS URL, service account, Exchange PowerShell server, accepted domains
 
 # Always a report first (nothing is changed), then the same command with the action
@@ -125,10 +126,11 @@ notepad .\config\MeetingCleanupOnPrem.config.psd1     # EWS URL, service account
 .\Invoke-MeetingCleanupOnPrem.ps1 -Organizer megan.bowen@contoso.com -Action Cancel -Comment 'Megan has left the company.'
 .\Invoke-MeetingCleanupOnPrem.ps1 -Organizer john.doe@contoso.com -Action Transfer -NewOrganizer jane.roe@contoso.com
 .\Invoke-MeetingCleanupOnPrem.ps1 -Room room-paris-01@contoso.com -Start 2026-11-02 -End 2026-11-13 -Action Cancel -Comment 'Closed for works.'
+.\Invoke-MeetingCleanupOnPrem.ps1 -Organizer megan.bowen@contoso.com -Subject 'Weekly sales review' -SeriesScope Occurrences -Start 2026-11-16 -End 2026-11-16 -Action Cancel -Comment 'No sales review this Monday.'
 .\Invoke-MeetingCleanupOnPrem.ps1 -Action Restore -FromReport .\reports\MeetingCleanupOnPrem_Remove_20261105-093000
 ```
 
-One command per everyday question — who still organizes what, a leaver with or without mailbox, a transfer, one series, rooms closed, the leavers of the month, undo a removal, a scheduled task: see the [user guide](docs/MeetingCleanupOnPrem-UserGuide.md).
+One command per everyday question — who still organizes what, a leaver with or without mailbox, a transfer, one series, one occurrence of a series, rooms closed, the leavers of the month, undo a removal, a scheduled task: see the [user guide](docs/MeetingCleanupOnPrem-UserGuide.md).
 
 The zip of each [release](https://github.com/Nico77600/MeetingCleanupOnPrem/releases) contains only the files needed to run, with both guides in HTML; `.\tools\New-MeetingCleanupOnPremPackage.ps1` builds the same package from the repository.
 
@@ -136,7 +138,7 @@ The zip of each [release](https://github.com/Nico77600/MeetingCleanupOnPrem/rele
 
 | Guide | Content |
 |---|---|
-| **[User guide](docs/MeetingCleanupOnPrem-UserGuide.md)** | For the people who run the tool: **prerequisites**, the one-time setup (service account, roles) and **everyday commands only** — which meetings this person still organizes, a person has left (mailbox kept or deleted), give the meetings to someone else, one series without a message, rooms closed for works, the leavers of the month, undo a removal, a scheduled task, the results. |
+| **[User guide](docs/MeetingCleanupOnPrem-UserGuide.md)** | For the people who run the tool: **prerequisites**, the one-time setup (service account, roles) and **everyday commands only** — which meetings this person still organizes, a person has left (mailbox kept or deleted), give the meetings to someone else, one series without a message, one occurrence of a series, rooms closed for works, the leavers of the month, undo a removal, a scheduled task, the results. |
 | **[Developer guide](docs/MeetingCleanupOnPrem-Guide.md)** | Everything else: how it works, every case, each action as measured on a lab Exchange Server (Remove, Cancel, rooms mode, Transfer, Restore), the rights and the connection (impersonation, Windows authentication, remote PowerShell, load balancer), every setting and parameter, the console, the report, the files produced, the architecture, performance and limits, tests, troubleshooting, security. |
 
 Both guides also exist as a single HTML file with a light and a dark theme (`docs/MeetingCleanupOnPrem-UserGuide.html`, `docs/MeetingCleanupOnPrem-Guide.html`): download them and open them locally, or use the copies in the release zip.

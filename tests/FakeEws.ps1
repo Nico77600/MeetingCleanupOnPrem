@@ -14,6 +14,7 @@ function New-FakeStore {
     @{
         Mailboxes = @{}; Deleted = @{}; Calls = [Collections.Generic.Dictionary[string, int]]::new(); Next = 0
         Names = @{}; LatencyMs = 0; RecoverablePage = 0; Busy = $null; DenyMailbox = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+        MailboxError = @{}
     }
 }
 
@@ -123,6 +124,8 @@ function Invoke-FakeEwsCore {
     $ns = [Xml.XmlNamespaceManager]::new($doc.NameTable); $ns.AddNamespace('m', $script:FakeM); $ns.AddNamespace('t', $script:FakeT)
     $mailbox = ([string]$Mailbox).ToLowerInvariant()
     if ($Store.DenyMailbox.Contains($mailbox)) { return New-FakeEnvelope $Operation (New-FakeMessage $Operation 'ErrorNonExistentMailbox') }
+    # MailboxError: a mailbox that answers with an error of Exchange (access denied, mailbox moving...).
+    if ($Store['MailboxError'] -and $Store['MailboxError'][$mailbox]) { return New-FakeEnvelope $Operation (New-FakeMessage $Operation $Store['MailboxError'][$mailbox]) }
     switch ($Operation) {
         'GetFolder' { return New-FakeEnvelope $Operation (New-FakeMessage $Operation) }
         'FindItem' {
@@ -196,8 +199,14 @@ function Invoke-FakeEwsCore {
                 $item = Find-FakeItem $Store $mailbox $cancel.GetAttribute('Id')
                 if (-not $item) { return New-FakeEnvelope $Operation (New-FakeMessage $Operation 'ErrorItemNotFound') }
                 $item.Cancelled = $true
-                # The attendees receive the cancellation: their copies are cancelled too.
-                foreach ($cal in $Store.Mailboxes.Values) { foreach ($i in $cal) { if ($i.Uid -eq $item.Uid) { $i.Cancelled = $true } } }
+                # The attendees receive the cancellation: their copies are cancelled too (an occurrence: that one only).
+                foreach ($cal in $Store.Mailboxes.Values) {
+                    foreach ($i in $cal) {
+                        if ($i.Uid -ne $item.Uid) { continue }
+                        if ($item.Type -eq 'Occurrence' -and ($i.Type -ne 'Occurrence' -or $i.Start -ne $item.Start)) { continue }
+                        $i.Cancelled = $true
+                    }
+                }
                 return New-FakeEnvelope $Operation (New-FakeMessage $Operation -Inner '<m:Items/>')
             }
             $new = $doc.SelectSingleNode('//m:Items/t:CalendarItem', $ns)

@@ -1,7 +1,7 @@
 ---
 title: Meeting Cleanup On-Prem
 subtitle: Developer guide
-version: 1.0.0
+version: 1.1.0
 author: Nicolas Fabert
 updated: 2026-10-07
 ---
@@ -25,7 +25,7 @@ updated: 2026-10-07
 ```cards
 user | Organizers present | One address, or a list of them (`-OrganizerFile`); Cancel sends the cancellation with your message and frees the rooms.
 ban | Organizers deleted | The meetings are found in the rooms, a list of mailboxes or every mailbox, from the address of the person or its X500 address.
-calendar | One meeting, a series, a period | `-Subject`, `-MeetingId`, `-Start` / `-End`. A series is handled as a whole.
+calendar | One meeting, a series, a period | `-Subject`, `-MeetingId`, `-Start` / `-End`. A series is handled as a whole, or by its occurrences in the period (`-SeriesScope Occurrences`).
 refresh | Silent, and reversible | *Remove* sends nothing and keeps a backup; *Restore* puts the copies back from Recoverable Items. *Cancel* is the organizer cancelling.
 building | Rooms over a period | `-Room` / `-RoomFile`: every meeting of the rooms, whatever its organizer — a room closed for works. A series loses only its occurrences in the period.
 people | Transfer to a new organizer | `-Action Transfer -NewOrganizer`: each meeting re-created and sent by the new organizer, the old one cancelled or removed.
@@ -99,6 +99,7 @@ Every case is the same command: what changes is the organizer state, what is sea
 | **One meeting**, still in the organizer's calendar | `-Organizer <address> -Subject 'Weekly review'` |
 | **One meeting** no longer in the organizer's calendar (deleted without cancellation) | `-Organizer <address> -Subject 'Weekly review' -SearchIn Rooms` — or `Mailboxes`, `AllMailboxes` when it had no room |
 | **A series**, present or not at the organizer | the same: a series is one meeting, handled as a whole |
+| **One or some occurrences of a series** | `-Organizer <address> -Subject 'Weekly review' -SeriesScope Occurrences -Start 2026-11-16 -End 2026-11-16` |
 | **A period**, organizer present | `-Organizer <address> -Start 2026-11-01 -End 2026-12-31` |
 | **A period**, organizer deleted | `-Organizer <old address or X500> -SearchIn Rooms` then, for the meetings without room, `-SearchIn Mailboxes -MailboxFile .\team.txt` or `-SearchIn AllMailboxes` |
 | **A meeting chosen in a report** | `-Organizer <address> -MeetingId <MeetingId of the report>`, or `-FromReport <folder> -MeetingId <id>` |
@@ -134,8 +135,21 @@ So the actions are:
 
 - A meeting **no longer in the organizer's calendar**, or whose organizer is deleted, cannot be cancelled: with *Cancel* its copies are removed silently, and the report says so.
 - If the cancellation fails, the copies of that meeting are left untouched (**Not done**), so that the meeting stays consistent. A meeting whose organizer copy exists but cannot be read is not acted on (*Skipped*).
-- A series is cancelled or removed as a whole, past occurrences included (except in rooms mode).
+- A series is cancelled or removed as a whole, past occurrences included — unless it is limited to its occurrences in the period (*Occurrences of a series*, below, and the rooms mode).
 - The copies with the **same subject in one mailbox** (a room shows the organizer's name as subject) are removed **3 seconds apart**: their order is then certain in Recoverable Items, for the restore.
+
+### Occurrences of a series
+
+`-SeriesScope Occurrences` (`Search.SeriesScope`) limits each series found to **its occurrences in the period**, as the rooms mode does, but for the meetings of organizers and without any room. With a period of one day, one occurrence.
+
+- The occurrences are those of the **organizer's calendar**; when the organizer has no mailbox any more, those of the copies of the attendees and the rooms. Each copy (organizer, attendees, rooms) is replaced by its occurrences of the period, each with its own item ID; the copies of the other occurrences are left out.
+- *Cancel*: the organizer cancels these occurrences only — **one cancellation per occurrence** (`CancelCalendarItem` of the occurrence), with your message, to every attendee; the rooms remove the occurrence themselves — then the copies left are removed. *Remove*: these occurrences go from the attendees' and the rooms' calendars without any message; the organizer keeps them. The series goes on before and after.
+- A series whose every occurrence is in the period is still acted on occurrence by occurrence (a note says so): `-SeriesScope Whole` cancels it at once.
+- With an action, the period must be given (`-Start` and `-End`). An occurrence removed is **not restorable** (Exchange does not keep it in Recoverable Items: `Backup.json` lists it). *Transfer* moves whole series: not available by occurrences.
+- When the calendar of the organizer cannot be read (other than a mailbox that no longer exists), the series is left as it is (*Not processed*): never the attendees without their organizer, never the whole series.
+- The report keeps the column *OccurrencesSkipped* of Meeting Cleanup (the occurrences left out in its window): a replay (`-FromReport`) leaves out the occurrences listed in `SkippedOccurrences` of its `Summary.json` (copies *Skipped*). The tool itself has no window: it is 0 in its own reports.
+
+Measured in the lab (2026-10-07, Appendix C): one occurrence of a weekly series of 4 cancelled from the command line — gone at the organizer, the attendee and the room, **one** *Canceled:* received for that date, the three others intact.
 
 ### Rooms over a period
 
@@ -288,6 +302,7 @@ The first run of a version compiles its helper (`src\MeetingCleanupOnPrem.Native
 | `Connection.EwsServer` | | One server to send the requests to, the name of the URL kept (load balancer, chapter 5). |
 | `Search.SearchIn` | `Organizer`, `Rooms` | Default of `-SearchIn`. |
 | `Search.PastDays` · `FutureDays` | `0` · `365` | Default period: today minus *PastDays* to today plus *FutureDays* (included). |
+| `Search.SeriesScope` | `Whole` | `Whole`: a series acted on whole; `Occurrences`: only its occurrences in the period (chapter 4). Rooms mode always acts on the occurrences of the period. |
 | `Search.Rooms` · `RoomFile` | | Rooms added to those of Exchange PowerShell (or the only ones without it). |
 | `Search.Mailboxes` · `MailboxFile` | | Default mailboxes of the `Mailboxes` scope. |
 | `Search.AcceptedDomains` | | The domains of the organization: an attendee of another domain is external (listed, not processed). Empty: every address is looked up. |
@@ -319,6 +334,7 @@ A file of mailboxes (`-MailboxFile`, `Search.MailboxFile`, `Search.RoomFile`) is
 | `-Room` · `-RoomFile` | Rooms mode: every meeting of these rooms in the period, whatever its organizer (instead of `-Organizer`). With an action, `-Start` and `-End` are required. |
 | `-Start` · `-End` | The period, in `Report.TimeZone`; an end date without a time is included. |
 | `-Subject` | Only the meetings whose subject contains this text (`*` and `?` are wildcards). The real subject is used, not the organizer's name a room shows. |
+| `-SeriesScope` | `Whole` (default, `Search.SeriesScope`): a series is acted on whole. `Occurrences`: only its occurrences in the period (chapter 4); with an action, give `-Start` and `-End`. |
 | `-MeetingId` | Only these meetings (column *MeetingId* of the report: the UID). |
 | `-SearchIn` | `Organizer`, `Rooms`, `Mailboxes`, `AllMailboxes`. |
 | `-Mailbox` · `-MailboxFile` | The mailboxes of the `Mailboxes` scope. |
@@ -352,6 +368,9 @@ A file of mailboxes (`-MailboxFile`, `Search.MailboxFile`, `Search.RoomFile`) is
 
 # Two rooms closed for works: every meeting of the period cancelled by its organizer (an occurrence for a series)
 .\Invoke-MeetingCleanupOnPrem.ps1 -Room room-paris-01@contoso.com, room-paris-02@contoso.com -Start 2026-11-02 -End 2026-11-13 -Action Cancel -Comment 'The rooms of the 1st floor are closed for works.'
+
+# Not this Monday: one occurrence of a weekly series cancelled, the series goes on
+.\Invoke-MeetingCleanupOnPrem.ps1 -Organizer megan.bowen@contoso.com -Subject 'Weekly sales review' -SeriesScope Occurrences -Start 2026-11-16 -End 2026-11-16 -Action Cancel -Comment 'No sales review this Monday.'
 
 # John has left: Jane organizes his meetings from now on (re-created, one invitation)
 .\Invoke-MeetingCleanupOnPrem.ps1 -Organizer john.doe@contoso.com -Action Transfer -NewOrganizer jane.roe@contoso.com
@@ -423,7 +442,8 @@ Filters: status and method. A row opens the meeting and every copy (role *New or
 | *Failed* | The Exchange error is in *Detail*. |
 | *Restored* | Back in the calendar, verified, with its answer (*Detail*). |
 | *Already present* | Already in the calendar before the restore: left as it is. |
-| *Not restorable* | An occurrence of a series (rooms mode): see `Backup.json`. |
+| *Not restorable* | An occurrence of a series (rooms mode, `-SeriesScope Occurrences`): see `Backup.json`. |
+| *Skipped* | An occurrence left out of a reviewed report (`SkippedOccurrences`): left as it is. |
 | *Created* | *Transfer*: the new meeting in the new organizer's calendar (role *New organizer*). |
 
 <!-- icon: file -->
@@ -433,8 +453,8 @@ One folder per run, `<FilePrefix>_<Action>_<yyyyMMdd-HHmmss>`:
 
 | File | Content |
 |---|---|
-| `MeetingCleanupOnPrem-Meetings.csv` | One row per meeting: UID, subject, organizer, start, series (*Scope* `Occurrences` and their number in rooms mode), recurrence, organizer copy, copies, status, new organizer and new meeting ID of a transfer. |
-| `MeetingCleanupOnPrem-Copies.csv` | One row per mailbox (per occurrence in rooms mode, column *Occurrence*): organizer, role, found by, answer, action, result, HTTP status, verified, time of the action, detail, item ID. |
+| `MeetingCleanupOnPrem-Meetings.csv` | One row per meeting: UID, subject, organizer, start, series (*Scope* `Occurrences`, their number and *OccurrencesSkipped* when limited to the period), recurrence, organizer copy, copies, status, new organizer and new meeting ID of a transfer. |
+| `MeetingCleanupOnPrem-Copies.csv` | One row per mailbox (per occurrence for a series limited to the period, column *Occurrence*): organizer, role, found by, answer, action, result, HTTP status, verified, time of the action, detail, item ID. |
 | `MeetingCleanupOnPrem-Organizers.csv` | One row per organizer: address typed, name, state (mailbox, no mailbox, not checked), meetings, series, copies, and what was done (removed, cancelled, restored, transferred, failed). |
 | `MeetingCleanupOnPrem-Transfers.csv` | *Transfer* only: one row per meeting of the transfer — old organizer and its state, new organizer, method, status, new meeting (result, UID, attendees and rooms invited), old meeting at the old organizer, old copies removed, failed or left, notes (chapter 10). |
 | `MeetingCleanupOnPrem-Summary.json` | The whole result: for scripts, for `-FromReport` and for *Restore*. |
@@ -479,7 +499,7 @@ CSV files are UTF-8 with BOM; cells starting with `=`, `+`, `-`, `@` are prefixe
 
 - **Exchange Server only**: a mailbox moved to Exchange Online cannot be opened by the on-premises EWS of the impersonated account; it is listed as not processed (use [Meeting Cleanup](https://github.com/Nico77600/MeetingCleanup) there).
 - **CalendarView**: more items starting at the same minute in one calendar than `Connection.PageSize` cannot all be read (warning); raise the page size.
-- **Rooms**: an occurrence removed is not restorable by the tool. A series is limited to its occurrences in the period held by the rooms; *Cancel* sends one cancellation per occurrence. A rooms search cannot be transferred.
+- **Occurrences** (rooms mode, `-SeriesScope Occurrences`): an occurrence removed is not restorable by the tool; *Cancel* sends one cancellation per occurrence. In rooms mode, a series is limited to its occurrences in the period held by the rooms. Occurrences cannot be transferred. An occurrence is known by its start in each calendar: an occurrence moved in one calendar only is not matched with the others.
 - **Transfer**: the attendees answer again; the old meeting goes whole (past occurrences in `Backup.json`); the exceptions of the old series are not carried over; an online meeting link is not created again.
 - **Groups**: a distribution group invited is expanded (nested groups too) with Exchange PowerShell; without it, the group address is looked up as a mailbox and listed as not processed.
 - **Restore** depends on Recoverable Items: after the retention of deleted items, or once the item has been purged, it is *Not found* — `Backup.json` still says what was there. Run the restore from the report of the run, not from a later one.
@@ -492,9 +512,9 @@ CSV files are UTF-8 with BOM; cells starting with `=`, `+`, `-`, `@` are prefixe
 .\Run-Tests.ps1      # Pester 6.1+, a simulated Exchange Server, no network
 ```
 
-`tests\FakeEws.ps1` is a simulated Exchange Server in memory: calendars with the same UID in every copy, room copies with the organizer's name as subject, series with their occurrences, CalendarView sorted by start and cut at `MaxEntriesReturned` (`IncludesLastItemInRange`), GetItem of one or many items (a series master by its occurrence), DeleteItem to Recoverable Items, cancellation received by every copy, creation of a meeting sent to its attendees and rooms, Recoverable Items read by offset and `MoveItem`, a mailbox that does not exist, throttling (`ErrorServerBusy`). `Install-FakeEws` replaces the transport of the module (`Send-McoEwsRequest`), so the retries run as with a real server.
+`tests\FakeEws.ps1` is a simulated Exchange Server in memory: calendars with the same UID in every copy, room copies with the organizer's name as subject, series with their occurrences, CalendarView sorted by start and cut at `MaxEntriesReturned` (`IncludesLastItemInRange`), GetItem of one or many items (a series master by its occurrence), DeleteItem to Recoverable Items, cancellation received by every copy (of that occurrence only for an occurrence), creation of a meeting sent to its attendees and rooms, Recoverable Items read by offset and `MoveItem`, a mailbox that does not exist or answers with an error, throttling (`ErrorServerBusy`). `Install-FakeEws` replaces the transport of the module (`Send-McoEwsRequest`), so the retries run as with a real server.
 
-The tests cover the configuration and the request, Exchange PowerShell (recipients, aliases and X500, nested groups, every room, every mailbox — mocked cmdlets), the EWS requests and answers, the compiled parser (property by property against the PowerShell one of 0.3.0), the totals, the CSV cells and the JSON, the progress and the time left, and on the simulated server: a whole search (each mailbox read once, GetItem by 50), paging (and items at the same time beyond a page), the retries, Remove then Restore (Recoverable Items by pages), the replay of a report (Remove, Transfer), Cancel, Transfer with its Transfers tab, and the rooms mode.
+The tests cover the configuration and the request, Exchange PowerShell (recipients, aliases and X500, nested groups, every room, every mailbox — mocked cmdlets), the EWS requests and answers, the compiled parser (property by property against the PowerShell one of 0.3.0), the totals, the CSV cells and the JSON, the progress and the time left, and on the simulated server: a whole search (each mailbox read once, GetItem by 50), paging (and items at the same time beyond a page), the retries, Remove then Restore (Recoverable Items by pages), the replay of a report (Remove, Transfer), Cancel, Transfer with its Transfers tab, the rooms mode, and the series by occurrences (one occurrence cancelled, the others intact; a deleted organizer; an organizer that cannot be read; every occurrence in the period; occurrences left out of a reviewed report; transfer refused).
 
 ```powershell
 .\tools\Measure-MeetingCleanupOnPrem.ps1 -Meetings 600 -LatencyMs 20 -Show   # a whole search on a simulated organization
@@ -535,7 +555,9 @@ A link from one guide to the other is written with its GitHub anchor (`MeetingCl
 | A meeting known to exist is not found | Period (a series is found when an occurrence falls in it), address of the organizer (the address shown in the meeting; X500 for a deleted mailbox), or scope: a meeting without room and without organizer copy needs `Mailboxes` or `AllMailboxes`. |
 | *more than 500 items at ..., some of them may be missing* | Raise `Connection.PageSize` (up to 1,000). |
 | *Confirmation needed: run interactively, or add -Force* | An action without a console (scheduled task): add `-Force`. |
-| *Meeting Cleanup On-Prem 1.0.0 is already loaded in this PowerShell session* | The compiled part of another version is loaded in this process (it cannot be unloaded): open a new PowerShell window. |
+| *Series by occurrences: give the period of the action* | `-SeriesScope Occurrences` (or `Search.SeriesScope`) with *Remove* or *Cancel*: `-Start` and `-End` are required. |
+| *Transfer moves whole series* | `-SeriesScope Occurrences` with *Transfer*: use `-SeriesScope Whole`. |
+| *Meeting Cleanup On-Prem 1.1.0 is already loaded in this PowerShell session* | The compiled part of another version is loaded in this process (it cannot be unloaded): open a new PowerShell window. |
 | *Cannot add type* · *... is not allowed in this language mode* when the module loads | PowerShell runs in *Constrained Language* mode (AppLocker or App Control policy): the tool needs *Full Language* (a folder allowed by the policy, or signed scripts). |
 | *Get-RecoverableItems is not available* | The role Mailbox Import Export is missing (chapter 5), or the Exchange cmdlets are not loaded (`ManagementShell`). |
 | Restore: copies *Not found* | Retention of deleted items over, copy already restored, or removed by someone else after the run. `Backup.json` says what was there. |
@@ -583,6 +605,7 @@ A lab Exchange Server 2019 (EWS `V2017_07_11`), four Mailbox servers behind a lo
 | Module, first run of a version on a busy server | 45 s to compile its helper; then 0.3 s |
 | Tool 1.0, `-SearchIn Rooms` with every room of Exchange PowerShell | 5 rooms listed, 3 of them outside the management scope of the impersonation: *ErrorImpersonateUserDenied*, 3 warnings (exit code 2); with `Search.AllRooms = $false`, the 2 rooms of the configuration, no warning |
 | Tool 1.0, an organizer address that is not in the directory | `Get-Recipient`: *couldn't be found*; shown *not in the directory*, its calendar not opened, the run completed |
+| Tool 1.1, a weekly series of 4 (organizer, an attendee, a room): `-SeriesScope Occurrences` over one day, *Cancel* | 1 occurrence cancelled by the organizer, the room removed it itself (*Already gone*), the attendee's removed and verified; 60 s later the 3 other occurrences intact in the three calendars, **one** *Canceled:* in the attendee's inbox |
 
 <!-- icon: tag -->
 ## Appendix D - Versions

@@ -1,5 +1,10 @@
 function Get-McoCleanupPlan {
-    <# What an action would do on the selected meetings, without doing it (confirmation, banner). One pass, no pipeline. #>
+    <#
+        What an action would do on the selected meetings, without doing it (confirmation, banner). One pass, no pipeline.
+        A series is handled as a whole, unless it was limited to its occurrences in the period (rooms mode,
+        -SeriesScope Occurrences): then each occurrence is acted on, and the occurrences left out in a reviewed
+        report (SkippedOccurrences) are left as they are.
+    #>
     param([Parameter(Mandatory)][pscustomobject]$Result, [Parameter(Mandatory)][ValidateSet('Remove', 'Cancel')][string]$Action)
     $fast = [MeetingCleanupOnPremNative.Fast]
     $cancel = [Collections.Generic.List[object]]::new()
@@ -7,7 +12,8 @@ function Get-McoCleanupPlan {
     $keep = [Collections.Generic.List[object]]::new()
     $held = [Collections.Generic.List[object]]::new()
     $acted = [Collections.Generic.List[object]]::new()
-    $series = 0; $removeRooms = 0; $occurrences = 0
+    $notSelected = [Collections.Generic.List[object]]::new()
+    $series = 0; $removeRooms = 0; $occMeetings = 0; $occurrences = 0; $cancelOccurrences = 0; $skippedOccurrences = 0
     $removeMailboxes = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     $keptMeetings = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     foreach ($meeting in $Result.Meetings) {
@@ -21,31 +27,36 @@ function Get-McoCleanupPlan {
         if ($why) { $held.Add([pscustomobject]@{ Meeting = $meeting; Reason = $why }); continue }
         $acted.Add($meeting)
         if ($meeting.Kind -eq 'Series') { $series++ }
+        # The occurrences left out: their copies are left as they are.
+        $skip = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+        foreach ($k in @($fast::Prop($meeting, 'SkippedOccurrences'))) { $key = $fast::KeyText($k); if ($key) { [void]$skip.Add($key) } }
+        if ($fast::Text($meeting, 'Scope') -eq 'Occurrences') { $occMeetings++; $occurrences += [Math]::Max(0, [int]$fast::Prop($meeting, 'Occurrences') - $skip.Count); $skippedOccurrences += $skip.Count }
         foreach ($copy in $meeting.Copies) {
             if (-not $copy.EventId -or $copy.Role -eq 'New organizer') { continue }
+            if ($skip.Count -and $skip.Contains($fast::OccurrenceKeyOf($copy))) { $notSelected.Add($copy); continue }
             if ($copy.Role -eq 'Organizer') {
-                if ($Action -eq 'Cancel') { $cancel.Add($copy) } else { $keep.Add($copy); [void]$keptMeetings.Add([string]$copy.MeetingId) }
+                if ($Action -eq 'Cancel') { $cancel.Add($copy); if ($fast::Text($copy, 'Occurrence')) { $cancelOccurrences++ } } else { $keep.Add($copy); [void]$keptMeetings.Add([string]$copy.MeetingId) }
             }
             elseif ($copy.Role -in 'Attendee', 'Room') {
                 $remove.Add($copy); [void]$removeMailboxes.Add([string]$copy.Mailbox)
                 if ($copy.Role -eq 'Room') { $removeRooms++ }
-                if ($fast::Text($copy, 'Occurrence')) { $occurrences++ }
             }
         }
     }
     $selected = $acted.ToArray()
     $lines = [Collections.Generic.List[string]]::new()
     $lines.Add(('{0} meeting(s) selected ({1} series)' -f $selected.Count, $series))
-    if ($cancel.Count) { $lines.Add(('{0} cancelled by their organizer: Exchange sends the cancellation to the attendees and releases the rooms' -f $cancel.Count)) }
+    if ($cancel.Count) { $lines.Add(('{0} cancelled by their organizer: Exchange sends the cancellation to the attendees and releases the rooms' -f $(if ($cancelOccurrences) { '{0} meeting(s) and {1} occurrence(s)' -f ($cancel.Count - $cancelOccurrences), $cancelOccurrences } else { $cancel.Count }))) }
     $lines.Add(('{0} cop{1} removed without any message in {2} mailbox(es): {3} attendee(s), {4} room(s)' -f $remove.Count, $(if ($remove.Count -eq 1) { 'y' } else { 'ies' }), $removeMailboxes.Count, ($remove.Count - $removeRooms), $removeRooms))
     if ($keep.Count) { $lines.Add(('{0} meeting(s) stay in the calendar of their organizer (choose Cancel to cancel them with a message)' -f $keptMeetings.Count)) }
-    if ($occurrences) { $lines.Add(('{0} occurrence cop{1} of series (rooms mode): an occurrence removed cannot be restored' -f $occurrences, $(if ($occurrences -eq 1) { 'y' } else { 'ies' }))) }
+    if ($occMeetings) { $lines.Add(('{0} series limited to their occurrences in the period ({1} occurrence(s)): an occurrence removed is not kept in Recoverable Items, it cannot be restored' -f $occMeetings, $occurrences)) }
+    if ($skippedOccurrences) { $lines.Add(('{0} occurrence(s) left out in the report: left as they are' -f $skippedOccurrences)) }
     if ($held.Count) {
         $reasons = [ordered]@{}
         foreach ($h in $held) { $reasons[$h.Reason] = 1 + [int]$reasons[$h.Reason] }
         $lines.Add(('{0} meeting(s) left as they are: {1}' -f $held.Count, ((@($reasons.Keys | ForEach-Object { "$($reasons[$_]) $_" })) -join '; ')))
     }
-    [pscustomobject]@{ Action = $Action; Meetings = $selected; Cancel = $cancel.ToArray(); Remove = $remove.ToArray(); Keep = $keep.ToArray(); Held = $held.ToArray(); Lines = $lines.ToArray(); Text = ($lines -join " $($script:Dot) ") }
+    [pscustomobject]@{ Action = $Action; Meetings = $selected; Cancel = $cancel.ToArray(); Remove = $remove.ToArray(); Keep = $keep.ToArray(); Held = $held.ToArray(); NotSelected = $notSelected.ToArray(); Lines = $lines.ToArray(); Text = ($lines -join " $($script:Dot) ") }
 }
 
 function Set-McoCopyResult {
@@ -154,29 +165,34 @@ function Invoke-McoCleanup {
         $h.Meeting.Status = 'Skipped'; $h.Meeting.Notes.Add("Not acted on: $($h.Reason).")
         foreach ($c in $h.Meeting.Copies) { if ($c.EventId) { $c.Action = 'None'; $c.Result = 'Not processed'; $c.Detail = "left as it is: $($h.Reason)" } }
     }
+    foreach ($c in $plan.NotSelected) { $c.Action = 'None'; $c.Result = 'Skipped'; $c.Detail = 'occurrence left out in the report: left as it is' }
     Write-McoNextStep $(if ($Action -eq 'Cancel') { 'Cancel and clean' } else { 'Remove silently' }) $(if ($Action -eq 'Cancel') { 'Cancel' } else { 'Trash' })
     foreach ($line in $plan.Lines) { Write-McoItem Info $line }
     if ($BackupPath -and $plan.Meetings.Count) { $Result | Add-Member -NotePropertyName BackupFile -NotePropertyValue (Save-McoBackup $Result $plan $BackupPath) -Force }
 
     # ---- organizer: cancel (Cancel) or keep (Remove) -------------------------------------------------------
+    # A cancellation that failed holds the copies of that meeting (of that occurrence, for a series by occurrences).
+    $fast = [MeetingCleanupOnPremNative.Fast]
     $failedMeetings = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-    $sent = 0
+    $sent = 0; $tried = 0; $occurrenceCancels = 0
     foreach ($copy in $plan.Cancel) {
         $response = Invoke-McoCancelItem -Mailbox $copy.Mailbox -EventId $copy.EventId -Comment $Comment
         $copy.ActionUtc = [datetime]::UtcNow.ToString('o')
         Set-McoCopyResult -Copy $copy -Action 'Cancel' -Response $response -Success 'Cancelled'
+        $tried++
+        if ($fast::Text($copy, 'Occurrence')) { $occurrenceCancels++ }
         if ($copy.Result -eq 'Cancelled') { $sent++ }
-        if ($copy.Result -eq 'Failed') { [void]$failedMeetings.Add($copy.MeetingId); Write-McoItem Fail "Cancel $($copy.Mailbox): $($copy.Detail)" }
-        Write-McoProgress (($sent + $failedMeetings.Count) / [Math]::Max(1, $plan.Cancel.Count)) ('{0:N0}/{1:N0} meetings cancelled' -f ($sent + $failedMeetings.Count), $plan.Cancel.Count)
+        if ($copy.Result -eq 'Failed') { [void]$failedMeetings.Add(('{0}|{1}' -f $copy.MeetingId, $fast::OccurrenceKeyOf($copy))); Write-McoItem Fail "Cancel $($copy.Mailbox): $($copy.Detail)" }
+        Write-McoProgress ($tried / [Math]::Max(1, $plan.Cancel.Count)) ('{0:N0}/{1:N0} cancellations sent' -f $tried, $plan.Cancel.Count)
     }
-    if ($plan.Cancel.Count) { Write-McoItem $(if ($failedMeetings.Count) { 'Warn' } else { 'Ok' }) ('{0} meeting(s) cancelled by their organizer {1} {2} failed' -f $sent, $dot, $failedMeetings.Count) -Icon Cancel }
+    if ($plan.Cancel.Count) { Write-McoItem $(if ($failedMeetings.Count) { 'Warn' } else { 'Ok' }) ('{0} {1} cancelled by their organizer {2} {3} failed' -f $sent, $(if ($occurrenceCancels) { 'meeting(s) or occurrence(s)' } else { 'meeting(s)' }), $dot, $failedMeetings.Count) -Icon Cancel }
     foreach ($copy in $plan.Keep) { $copy.Action = 'Keep'; $copy.Result = 'Kept'; $copy.Detail = "left in the organizer's calendar (Remove is silent; Cancel cancels it with a message)" }
 
     # ---- attendee and room copies: silent removal ------------------------------------------------------------
     if ($plan.Cancel.Count) { Start-Sleep -Seconds 5 }
     $toRemove = [Collections.Generic.List[object]]::new()
     foreach ($c in $plan.Remove) {
-        if ($failedMeetings.Contains($c.MeetingId)) { $c.Action = 'None'; $c.Result = 'Not done'; $c.Detail = 'the cancellation by the organizer failed: copy left as it was' }
+        if ($failedMeetings.Contains(('{0}|{1}' -f $c.MeetingId, $fast::OccurrenceKeyOf($c))) -or $failedMeetings.Contains("$($c.MeetingId)|")) { $c.Action = 'None'; $c.Result = 'Not done'; $c.Detail = 'the cancellation by the organizer failed: copy left as it was' }
         else { $toRemove.Add($c) }
     }
     if ($toRemove.Count) {

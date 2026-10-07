@@ -12,7 +12,7 @@
 
 .NOTES
     Author  : Nicolas Fabert
-    Version : 1.0.0
+    Version : 1.1.0
 #>
 
 $script:C = @{ Reset = ''; Bold = ''; Dim = ''; Accent = ''; AccentBg = ''; Green = ''; Yellow = ''; Red = ''; Blue = ''; White = '' }
@@ -453,6 +453,7 @@ function Write-McoRunBanner {
         $what = "from $(Format-McoDate $Request.Start $Settings.TimeZone -DateOnly) to $(Format-McoDate $Request.End $Settings.TimeZone -DateOnly -PeriodEnd)"
         if ($Request.Subject) { $what += " $dot subject contains '$($Request.Subject)'" }
         if (@($Request.MeetingId).Count) { $what += " $dot $(@($Request.MeetingId).Count) meeting ID(s)" }
+        if ($Request.Mode -ne 'Rooms' -and [string](Get-McoProperty $Request 'SeriesScope') -eq 'Occurrences') { $what += " $dot a series: its occurrences in the period" }
         $banner['Meetings'] = @('Calendar', $what)
         if ($Request.Mode -eq 'Rooms') { $banner['Search in'] = @('Search', 'these rooms only (a series: its occurrences in the period)') }
         else { $banner['Search in'] = @('Search', ((@($Request.SearchIn) | ForEach-Object { Get-McoScopeText $_ }) -join " $dot ")) }
@@ -483,7 +484,7 @@ function Write-McoMeetingTable {
         [pscustomobject]@{
             Status    = switch ($m.Status) { { $_ -in 'Removed', 'Cancelled', 'Restored', 'Transferred' } { 'Ok' } { $_ -in 'Partial', 'Not restorable' } { 'Warn' } 'Failed' { 'Fail' } { $_ -in 'Skipped', 'Nothing to do' } { 'Skip' } default { 'Info' } }
             Start     = $m.StartText
-            Kind      = if ($fast::Text($m, 'Scope') -eq 'Occurrences') { '{0} occ.' -f $m.Occurrences } else { $m.Kind }
+            Kind      = [MeetingCleanupOnPremNative.Fast]::KindText($m)
             Subject   = $m.Subject
             Organizer = $m.OrganizerCopy
             Who       = if ($m.OrganizerName) { $m.OrganizerName } else { $m.Organizer }

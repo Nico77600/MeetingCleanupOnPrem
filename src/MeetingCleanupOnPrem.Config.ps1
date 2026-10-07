@@ -6,7 +6,7 @@ $script:ConfigSchema = [ordered]@{
         WindowsPackage = 'WindowsPackage'; CredentialFile = 'CredentialFile'
     }
     Search = [ordered]@{
-        SearchIn = 'SearchIn'; PastDays = 'PastDays'; FutureDays = 'FutureDays'; Rooms = 'Rooms'
+        SearchIn = 'SearchIn'; PastDays = 'PastDays'; FutureDays = 'FutureDays'; SeriesScope = 'SeriesScope'; Rooms = 'Rooms'
         RoomFile = 'RoomFile'; Mailboxes = 'Mailboxes'; MailboxFile = 'MailboxFile'; AcceptedDomains = 'AcceptedDomains'; DirectoryMode = 'DirectoryMode'; AllRooms = 'AllRooms'
     }
     ManagementShell = [ordered]@{
@@ -20,6 +20,8 @@ $script:ConfigSchema = [ordered]@{
     Logging = [ordered]@{ Path = 'LogPath'; RetentionDays = 'LogRetentionDays' }
 }
 $script:SearchScopes = @('Organizer', 'Rooms', 'Mailboxes', 'AllMailboxes')
+# A series: the whole series (every occurrence, past ones included), or only its occurrences in the period.
+$script:SeriesScopes = @('Whole', 'Occurrences')
 $script:Actions = @('Report', 'Remove', 'Cancel', 'Restore', 'Transfer')
 $script:SmtpPattern = '^[^@\s<>"]+@[^@\s<>"]+\.[^@\s<>"]+$'
 $script:X500Pattern = '^(?i)(x500:)?/o=[^\r\n]+/cn=[^\r\n]+$'
@@ -29,7 +31,7 @@ function Get-McoDefaultConfiguration {
         EwsUrl = ''; Discovery = 'Manual'; Mailbox = ''; AccessMode = 'Impersonation'; Authentication = 'Windows'
         CredentialUser = ''; RequestServerVersion = 'Exchange2016'; MaxRetries = 3; TimeoutSeconds = 120; PageSize = 500; EwsServer = ''
         WindowsPackage = 'Negotiate'; CredentialFile = ''
-        SearchIn = @('Organizer', 'Rooms'); PastDays = 0; FutureDays = 365; Rooms = @(); RoomFile = ''
+        SearchIn = @('Organizer', 'Rooms'); PastDays = 0; FutureDays = 365; SeriesScope = 'Whole'; Rooms = @(); RoomFile = ''
         Mailboxes = @(); MailboxFile = ''; AcceptedDomains = @(); DirectoryMode = 'Auto'; AllRooms = $true
         ManagementShellMode = 'Rps'; ManagementShellServer = ''; ManagementShellUri = ''
         ManagementShellAuthentication = 'Kerberos'; ManagementShellCredentialUser = ''
@@ -110,6 +112,7 @@ function Test-McoConfiguration {
     if (@($c.SearchIn).Count -eq 0 -or @($c.SearchIn | Where-Object { $_ -notin $script:SearchScopes }).Count) { $p.Add("Search.SearchIn must contain one or more of: $($script:SearchScopes -join ', ').") }
     foreach ($a in @($c.Rooms) + @($c.Mailboxes)) { if ($a -and [string]$a -notmatch $script:SmtpPattern) { $p.Add("Search address '$a' is not an SMTP address.") } }
     foreach ($d in @($c.AcceptedDomains)) { if ($d -notmatch '^[A-Za-z0-9.-]+$') { $p.Add("Search.AcceptedDomains '$d' is invalid.") } }
+    if ([string]$c.SeriesScope -notin $script:SeriesScopes) { $p.Add("Search.SeriesScope must be 'Whole' or 'Occurrences'.") }
     if ([string]$c.DirectoryMode -notin 'Auto', 'ExchangePowerShell', 'None') { $p.Add("Search.DirectoryMode must be 'Auto', 'ExchangePowerShell' or 'None'.") }
     if ([string]$c.ManagementShellMode -notin 'Existing', 'Auto', 'Rps') { $p.Add("ManagementShell.Mode must be 'Existing', 'Auto' or 'Rps'.") }
     if ([string]$c.ManagementShellAuthentication -notin 'Kerberos', 'Negotiate', 'Basic') { $p.Add("ManagementShell.Authentication must be 'Kerberos', 'Negotiate' or 'Basic'.") }
@@ -169,12 +172,17 @@ function Split-McoAddressList {
 }
 
 function New-McoRequest {
+    <#
+        What one run does, with the defaults of the configuration. Mode: 'Organizers' or 'Rooms' (every meeting of
+        the rooms given, whatever its organizer). SeriesScope: 'Whole' (a series is acted on whole) or 'Occurrences'
+        (only its occurrences in the period); always 'Occurrences' in rooms mode.
+    #>
     param(
         [Parameter(Mandatory)][hashtable]$Settings, [string[]]$Organizer, [string]$OrganizerFile,
         [string[]]$Room, [string]$RoomFile, [Nullable[datetime]]$Start, [Nullable[datetime]]$End,
         [string]$Subject, [string[]]$MeetingId, [string[]]$SearchIn, [string[]]$Mailbox, [string]$MailboxFile,
         [ValidateSet('Report', 'Remove', 'Cancel', 'Restore', 'Transfer')][string]$Action = 'Report',
-        [string]$Comment, [string]$FromReport, [string]$NewOrganizer
+        [string]$Comment, [string]$FromReport, [string]$NewOrganizer, [string]$SeriesScope
     )
     $period = Get-McoDefaultPeriod $Settings
     $orgFile = if ($OrganizerFile) { [IO.Path]::GetFullPath($OrganizerFile, (Get-Location).Path) } else { '' }
@@ -191,8 +199,10 @@ function New-McoRequest {
         Organizer = @($org | Select-Object -Unique); OrganizerFile = $orgFile; Room = @($rooms | Select-Object -Unique); RoomFile = $roomFilePath
         Start = if ($null -ne $Start) { ConvertTo-McoUtc $Start $Settings.TimeZone } else { $period.Start }
         End = if ($null -ne $End) { ConvertTo-McoUtc $End $Settings.TimeZone -EndOfDay } else { $period.End }
+        PeriodGiven = $null -ne $Start -and $null -ne $End
         Subject = [string]$Subject; MeetingId = @($MeetingId | ForEach-Object { $_ -split '[;,\s]+' } | Where-Object { $_ } | ForEach-Object ToUpperInvariant | Select-Object -Unique)
         SearchIn = if (-not $org.Count -and $rooms.Count) { @('Rooms') } elseif ($SearchIn) { @($SearchIn | Select-Object -Unique) } else { @($Settings.SearchIn) }
+        SeriesScope = if (-not $org.Count -and $rooms.Count) { 'Occurrences' } elseif ($SeriesScope) { $SeriesScope } elseif ($Settings.ContainsKey('SeriesScope') -and $Settings.SeriesScope) { [string]$Settings.SeriesScope } else { 'Whole' }
         Mailboxes = @($mb | Select-Object -Unique); MailboxFile = $mbFile; Action = $Action; Comment = if ($Comment) { $Comment } elseif ($Action -eq 'Transfer') { $Settings.TransferComment } else { $Settings.CancelComment }
         FromReport = $FromReport; NewOrganizer = ([string]$NewOrganizer).Trim().ToLowerInvariant()
     }
@@ -205,8 +215,12 @@ function Test-McoRequest {
     if ($Request.Mode -eq 'Rooms' -and -not @($Request.Room).Count) { $p.Add('Rooms mode needs at least one room.') }
     foreach ($a in @($Request.Organizer) + @($Request.Room) + @($Request.Mailboxes)) { if ($a -notmatch $script:SmtpPattern -and $a -notmatch $script:X500Pattern) { $p.Add("'$a' is neither an SMTP nor an X500 address.") } }
     if ($Request.End -le $Request.Start) { $p.Add('The end of the period must be after its start.') }
+    $scope = [string](Get-McoProperty $Request 'SeriesScope')
+    if ($scope -and $scope -notin $script:SeriesScopes) { $p.Add("Series scope must be 'Whole' or 'Occurrences'.") }
+    if ($Request.Mode -eq 'Organizers' -and $scope -eq 'Occurrences' -and -not $Request.FromReport -and $Request.Action -in 'Remove', 'Cancel' -and -not (Get-McoProperty $Request 'PeriodGiven')) { $p.Add('Series by occurrences: give the period of the action (-Start and -End): the occurrences of the series in it are acted on.') }
     if ($Request.Action -eq 'Restore' -and -not $Request.FromReport) { $p.Add('Restore needs -FromReport.') }
     if ($Request.FromReport -and $Request.Action -eq 'Report') { $p.Add('A report replay needs -Action Remove, Cancel, Transfer or Restore.') }
     if ($Request.Action -eq 'Transfer' -and -not $Request.NewOrganizer) { $p.Add('Transfer needs -NewOrganizer.') }
+    if ($Request.Action -eq 'Transfer' -and $Request.Mode -eq 'Organizers' -and $scope -eq 'Occurrences' -and -not $Request.FromReport) { $p.Add('Transfer moves whole series: -SeriesScope Occurrences cannot be transferred (use -SeriesScope Whole).') }
     [pscustomobject]@{ IsValid = $p.Count -eq 0; Problems = @($p) }
 }

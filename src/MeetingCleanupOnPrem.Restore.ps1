@@ -12,7 +12,7 @@ function Import-McoRestoreSource {
     foreach ($source in @($data.Meetings)) {
         $copies = [Collections.Generic.List[object]]::new()
         foreach ($copy in @($source.Copies)) {
-            foreach ($name in 'ActionUtc', 'Occurrence', 'SeriesId', 'Verified', 'Detail') { if (-not $copy.PSObject.Properties[$name]) { $copy | Add-Member -NotePropertyName $name -NotePropertyValue '' } }
+            foreach ($name in 'ActionUtc', 'Occurrence', 'OccurrenceStart', 'OccurrenceKey', 'SeriesId', 'Verified', 'Detail') { if (-not $copy.PSObject.Properties[$name]) { $copy | Add-Member -NotePropertyName $name -NotePropertyValue '' } }
             $copy | Add-Member -NotePropertyName PreviousResult -NotePropertyValue ([string]$copy.Result) -Force
             $copy | Add-Member -NotePropertyName RemovedUtc -NotePropertyValue $(if ($copy.ActionUtc) { ConvertTo-McoRecoverableTime $copy.ActionUtc } else { $null }) -Force
             $copy | Add-Member -NotePropertyName RestoredUtc -NotePropertyValue '' -Force
@@ -44,7 +44,7 @@ function Get-McoRestorePlan {
     <#
         Restorable: the copies removed silently (Result Removed). Not restorable: a meeting cancelled by its
         organizer (the attendees received the cancellation), a meeting transferred to a new organizer, an occurrence
-        of a series (rooms mode).
+        of a series (rooms mode, -SeriesScope Occurrences).
     #>
     param([Parameter(Mandatory)][pscustomobject]$Result)
     $restore = [Collections.Generic.List[object]]::new()
