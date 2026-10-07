@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meeting Cleanup On-Prem - User guide</title>
+<script>
+  (() => {
+    const param = new URLSearchParams(window.location.search).get("scoutTheme");
+    const theme = param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", theme);
+  })();
+</script>
+<style>
+:root {
+  color-scheme: light;
+  --cp-bg: #f7f4ef; --cp-bg-elevated: #fcfbf8; --cp-surface: #ffffff; --cp-surface-soft: #f5f5f5;
+  --cp-border: #dedede; --cp-border-strong: #919191; --cp-text: #242424; --cp-text-muted: #5c5c5c; --cp-text-soft: #6f6f6f;
+  --cp-accent: #b11f4b; --cp-accent-hover: #9a1a41; --cp-accent-soft: rgba(177, 31, 75, 0.08); --cp-accent-fg: #ffffff;
+  --cp-success: #16a34a; --cp-danger: #dc2626; --cp-warning: #f59e0b; --cp-link: #0078d4;
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12); --cp-overlay: rgba(255, 255, 255, 0.8);
+  --cp-panel: rgba(255, 255, 255, 0.86); --cp-panel-strong: rgba(255, 255, 255, 0.96); --cp-sheen: rgba(255, 255, 255, 0.55);
+  --cp-highlight: rgba(177, 31, 75, 0.12);
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --cp-bg: #3d3b3a; --cp-bg-elevated: #343231; --cp-surface: #292929; --cp-surface-soft: #2e2e2e;
+  --cp-border: #474747; --cp-border-strong: #5f5f5f; --cp-text: #dedede; --cp-text-muted: #919191; --cp-text-soft: #b0b0b0;
+  --cp-accent: #fd8ea1; --cp-accent-hover: #fb7b91; --cp-accent-soft: rgba(253, 142, 161, 0.14); --cp-accent-fg: #1a1a1a;
+  --cp-success: #4ade80; --cp-danger: #f87171; --cp-warning: #fbbf24; --cp-link: #4da6ff;
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32); --cp-overlay: rgba(41, 41, 41, 0.88);
+  --cp-panel: rgba(41, 41, 41, 0.72); --cp-panel-strong: rgba(41, 41, 41, 0.96); --cp-sheen: rgba(255, 255, 255, 0.04);
+  --cp-highlight: rgba(253, 142, 161, 0.12);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+body { margin: 0; background: var(--cp-bg); color: var(--cp-text); font: 15.5px/1.7 "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif; display: grid; grid-template-columns: 300px minmax(0, 1fr); }
+a { color: var(--cp-link); text-decoration: none; } a:hover { text-decoration: underline; }
+.icon { width: 22px; height: 22px; } .icon-sm { width: 16px; height: 16px; flex-shrink: 0; } .icon-xs { width: 12px; height: 12px; }
+button { font: inherit; color: var(--cp-text); background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: 0.625rem; cursor: pointer; }
+button:hover { border-color: var(--cp-accent); color: var(--cp-accent); }
+:focus-visible { outline: 2px solid var(--cp-accent); outline-offset: 2px; }
+
+/* ---- Sidebar -------------------------------------------------------------------- */
+aside { position: sticky; top: 0; height: 100vh; overflow-y: auto; background: var(--cp-bg-elevated); border-right: 1px solid var(--cp-border); padding: 24px 16px 32px; }
+.brand { display: flex; gap: 12px; align-items: center; padding: 4px 8px 20px; border-bottom: 1px solid var(--cp-border); margin-bottom: 12px; }
+.brand-logo { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--cp-accent); color: var(--cp-accent-fg); }
+.brand-name { font-weight: 700; font-size: 15px; line-height: 1.2; } .brand-sub { font-size: 12px; color: var(--cp-text-muted); }
+.nav-part { margin: 20px 8px 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cp-accent); }
+.nav-part span { color: var(--cp-text-muted); font-weight: 600; letter-spacing: 0.04em; }
+aside a { display: flex; align-items: center; gap: 10px; padding: 6px 8px; margin: 1px 0; border-radius: 0.625rem; color: var(--cp-text); font-size: 13.5px; line-height: 1.35; border-left: 3px solid transparent; }
+aside a:hover { background: var(--cp-accent-soft); text-decoration: none; }
+aside a.active { background: var(--cp-accent-soft); border-left-color: var(--cp-accent); font-weight: 600; }
+.nav-badge { flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 11.5px; font-weight: 700; background: var(--cp-surface-soft); color: var(--cp-text-muted); border: 1px solid var(--cp-border); }
+aside a.active .nav-badge { background: var(--cp-accent); color: var(--cp-accent-fg); border-color: var(--cp-accent); }
+
+/* ---- Main -------------------------------------------------------------------------- */
+main { padding: 40px 56px 80px; max-width: 1080px; width: 100%; }
+.hero { position: relative; overflow: hidden; border: 1px solid var(--cp-border); border-top: 4px solid var(--cp-accent); border-radius: 16px; padding: 36px 40px 32px; margin-bottom: 40px; background: linear-gradient(125deg, var(--cp-surface) 40%, var(--cp-accent-soft)); }
+.hero::before { content: ""; position: absolute; width: 320px; height: 320px; right: -110px; top: -170px; border: 44px solid var(--cp-highlight); border-radius: 50%; pointer-events: none; }
+.hero-top { position: relative; display: flex; align-items: center; gap: 18px; }
+.hero-logo { width: 60px; height: 60px; border-radius: 16px; display: grid; place-items: center; background: var(--cp-accent); color: var(--cp-accent-fg); flex-shrink: 0; }
+.hero-logo .icon { width: 32px; height: 32px; }
+.eyebrow, .section-eyebrow { font-size: 11.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cp-accent); }
+.hero h1 { font-size: 38px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.1; margin: 4px 0 0; }
+#theme { margin-left: auto; padding: 8px 10px; display: grid; place-items: center; }
+.badges { position: relative; display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 18px; }
+.badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 12.5px; background: var(--cp-surface); border: 1px solid var(--cp-border); color: var(--cp-text-muted); }
+.badge-accent { background: var(--cp-accent); color: var(--cp-accent-fg); border-color: var(--cp-accent); font-weight: 600; }
+.lead { position: relative; font-size: 17.5px; line-height: 1.6; max-width: 760px; margin: 0 0 24px; }
+
+.part { display: flex; align-items: baseline; gap: 14px; margin: 56px 0 20px; padding-bottom: 10px; border-bottom: 2px solid var(--cp-accent); }
+.part-label { font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cp-accent); }
+.part-name { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+
+.section { background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: 16px; padding: 32px 40px 28px; margin: 0 0 28px; box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14); }
+.section-head { display: flex; align-items: center; gap: 16px; padding-bottom: 18px; margin-bottom: 8px; border-bottom: 1px solid var(--cp-border); }
+.section-icon { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; background: var(--cp-accent-soft); color: var(--cp-accent); flex-shrink: 0; }
+.section-icon .icon { width: 26px; height: 26px; }
+.section h2 { font-size: 25px; font-weight: 700; letter-spacing: -0.02em; margin: 2px 0 0; line-height: 1.2; }
+.section-body > :first-child { margin-top: 16px; }
+h3 { font-size: 17.5px; font-weight: 650; margin: 36px 0 12px; padding-left: 12px; border-left: 3px solid var(--cp-accent); line-height: 1.3; }
+p { margin: 12px 0; } ul, ol { padding-left: 22px; } li { margin: 6px 0; } li::marker { color: var(--cp-accent); }
+strong { font-weight: 650; }
+code { font-family: Consolas, "Courier New", Courier, monospace; font-size: 0.88em; background: var(--cp-surface-soft); border: 1px solid var(--cp-border); padding: 1px 6px; border-radius: 6px; }
+kbd { font-family: Consolas, monospace; font-size: 0.85em; padding: 1px 7px; border: 1px solid var(--cp-border-strong); border-bottom-width: 2px; border-radius: 6px; background: var(--cp-surface-soft); }
+hr { border: 0; border-top: 1px solid var(--cp-border); margin: 28px 0; }
+
+/* Tables */
+.table-wrap { overflow-x: auto; margin: 16px 0 20px; border: 1px solid var(--cp-border); border-radius: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; line-height: 1.55; }
+th { text-align: left; font-weight: 650; font-size: 12.5px; letter-spacing: 0.02em; color: var(--cp-text-muted); background: var(--cp-surface-soft); padding: 11px 16px; border-bottom: 1px solid var(--cp-border); }
+td { padding: 11px 16px; border-bottom: 1px solid var(--cp-border); vertical-align: top; }
+td:first-child { font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+tbody tr:hover td { background: var(--cp-accent-soft); }
+td code { white-space: nowrap; } td code.long { white-space: normal; overflow-wrap: anywhere; }
+
+/* Code */
+.code { margin: 16px 0 20px; border: 1px solid var(--cp-border); border-radius: 12px; overflow: hidden; background: var(--cp-surface-soft); }
+.code-head { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px 6px 16px; border-bottom: 1px solid var(--cp-border); font-size: 12px; font-weight: 600; color: var(--cp-text-muted); letter-spacing: 0.04em; text-transform: uppercase; }
+.copy { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; font-size: 12px; text-transform: none; letter-spacing: 0; }
+.copy.done { color: var(--cp-success); border-color: var(--cp-success); }
+.code pre { margin: 0; padding: 16px 18px; overflow-x: auto; font-size: 13.5px; line-height: 1.6; }
+.code pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* Callouts */
+.markdown-alert { --tone: var(--cp-link); margin: 18px 0; padding: 14px 18px; border: 1px solid color-mix(in srgb, var(--tone) 35%, var(--cp-border)); border-left: 4px solid var(--tone); border-radius: 12px; background: color-mix(in srgb, var(--tone) 7%, var(--cp-surface)); }
+.markdown-alert p { margin: 6px 0; }
+.markdown-alert-title { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--tone); margin: 0 0 4px !important; }
+.markdown-alert-tip { --tone: var(--cp-success); } .markdown-alert-important { --tone: var(--cp-accent); }
+.markdown-alert-warning { --tone: var(--cp-warning); } .markdown-alert-caution { --tone: var(--cp-danger); }
+
+/* Cards */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin: 18px 0 22px; position: relative; }
+.card-item { display: flex; gap: 14px; padding: 16px 18px; border: 1px solid var(--cp-border); border-radius: 14px; background: var(--cp-surface); transition: transform 160ms ease, border-color 160ms ease; }
+.card-item:hover { transform: translateY(-2px); border-color: var(--cp-accent); }
+.card-icon { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; background: var(--cp-accent-soft); color: var(--cp-accent); flex-shrink: 0; }
+.card-title { font-weight: 700; font-size: 14.5px; line-height: 1.3; margin: 2px 0 4px; }
+.card-text { font-size: 13.5px; line-height: 1.5; color: var(--cp-text-muted); }
+
+/* Steps */
+.steps { list-style: none; padding: 0; margin: 18px 0 22px; position: relative; }
+.steps li { position: relative; display: flex; gap: 16px; margin: 0; padding: 0 0 18px; }
+.steps li:not(:last-child)::before { content: ""; position: absolute; left: 16px; top: 36px; bottom: 2px; width: 2px; background: var(--cp-border); }
+.step-num { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 14px; background: var(--cp-accent); color: var(--cp-accent-fg); box-shadow: 0 0 0 4px var(--cp-accent-soft); }
+.step-body { padding-top: 5px; } .step-title { font-weight: 700; font-size: 15px; line-height: 1.35; }
+.step-text { color: var(--cp-text-muted); font-size: 14.5px; margin-top: 2px; }
+
+/* Flow */
+.flow { display: flex; align-items: stretch; flex-wrap: wrap; gap: 6px; margin: 20px 0 24px; padding: 20px; border-radius: 14px; background: var(--cp-surface-soft); border: 1px dashed var(--cp-border-strong); }
+.flow-node { flex: 1 1 130px; min-width: 120px; text-align: center; padding: 16px 12px; border-radius: 12px; background: var(--cp-surface); border: 1px solid var(--cp-border); }
+.flow-icon { width: 42px; height: 42px; margin: 0 auto 8px; border-radius: 12px; display: grid; place-items: center; background: var(--cp-accent-soft); color: var(--cp-accent); }
+.flow-title { font-weight: 700; font-size: 14px; line-height: 1.3; } .flow-text { font-size: 12.5px; color: var(--cp-text-muted); line-height: 1.4; margin-top: 4px; }
+.flow-arrow { flex: 0 0 auto; min-width: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--cp-border-strong); padding: 0 2px; }
+.flow-arrow svg { width: 44px; height: 14px; color: var(--cp-accent); }
+.flow-label { font-size: 12px; font-weight: 700; color: var(--cp-accent); } .flow-sub { font-size: 11px; color: var(--cp-text-muted); text-align: center; max-width: 110px; line-height: 1.3; }
+
+/* Figures */
+figure { margin: 18px 0 24px; }
+figure img { display: block; max-width: 100%; border: 1px solid var(--cp-border); border-radius: 12px; box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14); cursor: zoom-in; }
+figcaption { font-size: 13px; color: var(--cp-text-muted); margin-top: 8px; text-align: center; }
+dialog#zoom { border: 0; padding: 0; background: transparent; max-width: 96vw; max-height: 96vh; }
+dialog#zoom::backdrop { background: rgba(0, 0, 0, 0.7); }
+dialog#zoom img { max-width: 96vw; max-height: 94vh; border-radius: 12px; cursor: zoom-out; display: block; }
+
+#to-top { position: fixed; right: 24px; bottom: 24px; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--cp-accent); color: var(--cp-accent-fg); border: 0; box-shadow: var(--cp-shadow); opacity: 0; pointer-events: none; transition: opacity 200ms; }
+#to-top.visible { opacity: 1; pointer-events: auto; } #to-top:hover { background: var(--cp-accent-hover); color: var(--cp-accent-fg); }
+footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--cp-border); font-size: 12.5px; color: var(--cp-text-muted); text-align: center; }
+
+@media (max-width: 1000px) {
+  body { display: block; }
+  aside { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--cp-border); }
+  main { padding: 24px 16px 60px; } .section { padding: 24px 20px; } .hero { padding: 28px 22px; }
+}
+@media print {
+  body { display: block; background: #fff; } aside, #to-top, #theme, .copy { display: none !important; }
+  main { padding: 0; max-width: none; } .section { break-inside: avoid-page; box-shadow: none; } .part { break-before: page; }
+}
+</style></head><body>
+<aside><div class="brand"><div class="brand-logo"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div><div><div class="brand-name">Meeting Cleanup On-Prem</div><div class="brand-sub">User guide · v1.0.0</div></div></div>
+<nav aria-label="Contents"><a href="#prerequisites" data-target="prerequisites"><span class="nav-badge">1</span><span class="nav-text">Prerequisites</span></a><a href="#everyday-use" data-target="everyday-use"><span class="nav-badge">2</span><span class="nav-text">Everyday use</span></a><a href="#choose-the-meetings" data-target="choose-the-meetings"><span class="nav-badge">3</span><span class="nav-text">Choose the meetings</span></a><a href="#results" data-target="results"><span class="nav-badge">4</span><span class="nav-text">Results</span></a></nav></aside>
+<main><header class="hero" id="top"><div class="hero-top"><div class="hero-logo"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div><div><div class="eyebrow">User guide</div><h1>Meeting Cleanup On-Prem</h1></div><button type="button" id="theme" class="ghost" title="Light / dark"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg></button></div><div class="badges"><span class="badge badge-accent">Version 1.0.0</span><span class="badge"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Updated 2026-10-07</span><span class="badge"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Nicolas Fabert</span><span class="badge"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></svg>PowerShell 7.4+</span><span class="badge"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="7" rx="2"/><rect x="4" y="14" width="16" height="7" rx="2"/><path d="M8 6.5h.01M8 17.5h.01"/></svg>Exchange Server · EWS · no stored password</span></div><p class="lead">What you need before the first run, then one command per everyday question: <strong>which meetings does this person still organize?</strong>, <strong>a person has left: cancel their meetings, or give them to someone else?</strong>, <strong>one series to remove without a message</strong>, <strong>rooms closed for works</strong>, <strong>undo a removal</strong>. How the tool works, the rights in detail, the configuration, the report and the internals are in the <a href="MeetingCleanupOnPrem-Guide.html">developer guide</a>.</p>
+<div class="markdown-alert markdown-alert-important">
+<p class="markdown-alert-title"><svg class="icon-sm" viewBox="0 0 16 16" fill="currentColor" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Important</p>
+<p>Files downloaded from the Internet may be blocked by Windows and fail to run. Before using this project, unblock every file in the downloaded folder:</p>
+<div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code>Get-ChildItem &quot;C:\Chemin\Du\Dossier&quot; -Recurse -File -Force | Unblock-File
+</code></pre></div>
+<p>Replace the example path with the folder where you downloaded or extracted this project.</p>
+</div>
+<div class="cards"><div class="card-item"><div class="card-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10"/><path d="m3.5 6 1.5 1.5L8 4.5M3.5 12l1.5 1.5L8 10.5M3.5 18l1.5 1.5L8 16.5"/></svg></div><div><div class="card-title">Prerequisites</div><div class="card-text">Chapter 1: PowerShell, the service account and its rights, then the one-time setup.</div></div></div><div class="card-item"><div class="card-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></svg></div><div><div class="card-title">Everyday use</div><div class="card-text">Chapter 2: one command per question, in the console or in a scheduled task.</div></div></div><div class="card-item"><div class="card-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg></div><div><div class="card-title">Choose the meetings</div><div class="card-text">Chapter 3: who, where to search, which period, which meetings, which server.</div></div></div><div class="card-item"><div class="card-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></svg></div><div><div class="card-title">Results</div><div class="card-text">Chapter 4: where the report is written, exit codes, the usual messages.</div></div></div></div>
+</header><section class="section" id="prerequisites"><div class="section-head"><div class="section-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10"/><path d="m3.5 6 1.5 1.5L8 4.5M3.5 12l1.5 1.5L8 10.5M3.5 18l1.5 1.5L8 16.5"/></svg></div><div><div class="section-eyebrow">Chapter 1</div><h2>Prerequisites</h2></div></div><div class="section-body">
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Exchange</td>
+<td><strong>Exchange Server 2016, 2019 or Subscription Edition</strong>, with EWS reachable over HTTPS. Validated on Exchange Server 2019. For Exchange Online, use <a href="https://github.com/Nico77600/MeetingCleanup" target="_blank" rel="noopener">Meeting Cleanup</a>.</td>
+</tr>
+<tr>
+<td>PowerShell</td>
+<td><strong>7.4 or later</strong> (<code>pwsh</code>) — a portable zip is enough. No module to install.</td>
+</tr>
+<tr>
+<td>Windows</td>
+<td>Windows 10 / 11, Windows Server 2016 to 2025: an administration workstation or an Exchange server. The tool runs in a console, or in a scheduled task.</td>
+</tr>
+<tr>
+<td>Service account</td>
+<td>An account with the role <strong>ApplicationImpersonation</strong> (it opens the calendars through EWS), preferably limited to the mailboxes concerned by a management scope (<a href="MeetingCleanupOnPrem-Guide.html#rights-and-connection">developer guide, chapter 5</a>). <code>Delegate</code> (full access to each mailbox) works as well.</td>
+</tr>
+<tr>
+<td>Exchange PowerShell</td>
+<td>Recommended: the tool connects to it alone (remote PowerShell, Kerberos). It resolves aliases and X500 addresses, lists every room and every mailbox, expands the groups and runs <em>Restore</em>. Rights: <a href="MeetingCleanupOnPrem-Guide.html#rights-for-the-directory">Rights for the directory</a>, <a href="MeetingCleanupOnPrem-Guide.html#rights-for-restore">Rights for Restore</a>.</td>
+</tr>
+<tr>
+<td>Network</td>
+<td>HTTPS to the EWS URL (<code>https://mail.contoso.com/EWS/Exchange.asmx</code>); HTTP to <code>/PowerShell/</code> of a Mailbox server for remote PowerShell.</td>
+</tr>
+</tbody>
+</table></div>
+<div class="markdown-alert markdown-alert-warning">
+<p class="markdown-alert-title"><svg class="icon-sm" viewBox="0 0 16 16" fill="currentColor" version="1.1" width="16" height="16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
+<p><strong>ApplicationImpersonation</strong> opens the calendar of every mailbox in its scope. Keep the account like an administrator account, limit it to the mailboxes concerned with a management scope, and store its password only as an encrypted credential file (scheduled task, 1.1).</p>
+</div>
+<h3 id="one-time-setup">1.1 One-time setup</h3>
+<ol class="steps"><li><span class="step-num">1</span><div class="step-body"><div class="step-title">Copy the tool</div><div class="step-text">Unblock the files, then copy the folder, for example to <code>C:\Tools\MeetingCleanupOnPrem</code>. No installer.</div></div></li><li><span class="step-num">2</span><div class="step-body"><div class="step-title">Service account</div><div class="step-text">A user account, for example <code>svc-meetingcleanup</code>. Give it ApplicationImpersonation and remote PowerShell (commands below).</div></div></li><li><span class="step-num">3</span><div class="step-body"><div class="step-title">Exchange roles</div><div class="step-text">The roles of the directory (read only) and, for <em>Restore</em>, Mailbox Import Export: <a href="MeetingCleanupOnPrem-Guide.html#rights-and-connection">developer guide, chapter 5</a>.</div></div></li><li><span class="step-num">4</span><div class="step-body"><div class="step-title">Configure</div><div class="step-text"><code>notepad .\config\MeetingCleanupOnPrem.config.psd1</code>: <code>Connection.EwsUrl</code>, <code>Connection.Mailbox</code> (the address of the service account), <code>ManagementShell.ServerFqdn</code>, <code>Search.AcceptedDomains</code>.</div></div></li><li><span class="step-num">5</span><div class="step-body"><div class="step-title">Check</div><div class="step-text"><code>.\Invoke-MeetingCleanupOnPrem.ps1 -Organizer &lt;your address&gt;</code>: step 1 shows Exchange PowerShell and EWS; a report changes nothing.</div></div></li><li><span class="step-num">6</span><div class="step-body"><div class="step-title">Scheduled task</div><div class="step-text">Optional: a credential file of the service account (<code>Connection.CredentialFile</code>), written by the account that runs the task.</div></div></li></ol>
+<div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code># Exchange Management Shell, as an Exchange administrator - once
+New-ManagementScope -Name 'Meeting Cleanup scope' -RecipientRestrictionFilter &quot;RecipientTypeDetails -eq 'UserMailbox' -or RecipientTypeDetails -eq 'RoomMailbox' -or RecipientTypeDetails -eq 'SharedMailbox'&quot;
+New-ManagementRoleAssignment -Name 'Meeting Cleanup impersonation' -Role ApplicationImpersonation -User svc-meetingcleanup -CustomRecipientWriteScope 'Meeting Cleanup scope'
+Set-User svc-meetingcleanup -RemotePowerShellEnabled $true
+Add-RoleGroupMember 'View-Only Organization Management' -Member svc-meetingcleanup
+New-RoleGroup -Name 'Meeting Cleanup Restore' -Roles 'Mailbox Import Export' -Members svc-meetingcleanup   # for Restore only
+</code></pre></div>
+<div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code># Scheduled task: as the account that RUNS the task (the file can only be read by it, on this computer)
+Get-Credential CONTOSO\svc-meetingcleanup | Export-Clixml C:\Tools\MeetingCleanupOnPrem\svc.cred.xml
+# then, in the configuration: Connection.CredentialFile = 'C:\Tools\MeetingCleanupOnPrem\svc.cred.xml'
+</code></pre></div>
+</div></section><section class="section" id="everyday-use"><div class="section-head"><div class="section-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></svg></div><div><div class="section-eyebrow">Chapter 2</div><h2>Everyday use</h2></div></div><div class="section-body">
+<p>Run the commands from the tool folder, in PowerShell 7. A command without <code>-Action</code> is a <strong>report</strong>: it finds the meetings and every copy of them (organizer, attendees, rooms, members of the groups invited) and <strong>changes nothing</strong>. Read the report, then run the same command with an action: <em>Remove</em>, <em>Cancel</em>, <em>Transfer</em> and <em>Restore</em> show exactly what will happen and ask to type <strong>YES</strong>; a backup is written before any change.</p>
+<div class="markdown-alert markdown-alert-important">
+<p class="markdown-alert-title"><svg class="icon-sm" viewBox="0 0 16 16" fill="currentColor" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Important</p>
+<p>Always start with a report. A silent removal can be undone for 14 days (2.8); a <strong>cancellation cannot be undone</strong>: the attendees received it.</p>
+</div>
+<h3 id="which-meetings-does-this-person-still-organize">2.1 Which meetings does this person still organize?</h3>
+<div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code># The coming year (default), in the organizer's calendar and every room
+.\Invoke-MeetingCleanupOnPrem.ps1 -Organizer megan.bowen@contoso.com
+
+# A given period
+.\Invoke-MeetingCleanupOnPrem.ps1 -Organizer megan.bowen@contoso.com -Start 2026-11-01 -End 2026-12-31
+</code></pre></div>
+<p>Open the HTML report: the <strong>Meetings</strong> tab lists each meeting (a series once), click one for its copies — who has it, which rooms, how it was found.</p>
+<h3 id="a-person-has-left-the-mailbox-is-kept-cancel-the-meetings">2.2 A person has left, the mailbox is kept: cancel the meetings</h3>
+<div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code>.\Invoke-MeetingCleanupOnPrem.ps1 -Organizer megan.bowen@contoso.com -Action Cancel -Comment 'Megan Bowen has left: this meeting is cancelled.'
+</code></pre></div>
+<p>Each meeting is cancelled by its organizer, with your message: the attendees receive the cancellation, the rooms release the slot, the copies left are removed.</p>
+<h3 id="a-person-has-left-the-mailbox-is-deleted">2.3 A person has left, the mailbox is deleted</h3>
+<div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code># Every room first, then every mailbox for the meetings without room
+.\Invoke-MeetingCleanupOnPrem.ps1 -Organizer john.doe@contoso.com -SearchIn Rooms, AllMailboxes -Start 2026-10-01 -End 2027-03-31
+
+# Then remove, without a message, exactly what the report found
+.\Invoke-MeetingCleanupOnPrem.ps1 -FromReport .\reports\MeetingCleanupOnPrem_Report_20261006-101500 -Action Remove
+</code></pre></div>
+<p>Use the address of the person, or its <strong>X500 address</strong> when the account is gone from the directory (<code>/o=Contoso/ou=Exchange Administrative Group (...)/cn=Recipients/cn=...</code>): it is the organizer address the meetings still carry. A deleted organizer cannot cancel: the copies are removed silently. <code>AllMailboxes</code> needs Exchange PowerShell; with a list of the team instead: <code>-SearchIn Mailboxes -MailboxFile .\team.txt</code>.</p>
+<h3 id="give-the-meetings-of-a-person-to-someone-else">2.4 Give the meetings of a person to someone else</h3>
+<div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code>.\Invoke-MeetingCleanupOnPrem.ps1 -Organizer john.doe@contoso.com -Action Transfer -NewOrganizer jane.roe@contoso.com
+</code></pre></div>
+<p>Jane becomes the organizer of every meeting still to come. Exchange Server cannot move a meeting to another organizer: each meeting is <strong>re-created</strong> in Jane's calendar and sent to every attendee and room in <strong>one invitation</strong> (a series from its next occurrence); John's meeting is cancelled with the message <em>This meeting is now organized by Jane Roe</em>, or its copies are removed silently when his mailbox is gone. The report opens on its <strong>Transfers</strong> tab: for each meeting, from whom to whom, the new meeting and its invitation, what became of the old one. Details: <a href="MeetingCleanupOnPrem-Guide.html#transfer-to-a-new-organizer">developer guide, Transfer to a new organizer</a>.</p>
+<h3 id="one-meeting-or-one-series-without-a-message">2.5 One meeting, or one series, without a message</h3>
+<div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code>.\Invoke-MeetingCleanupOnPrem.ps1 -Organizer megan.bowen@contoso.com -Subject 'Weekly sales review' -Action Remove
+</code></pre></div>
+<p>The copies of the attendees and the rooms are removed, nobody receives anything; a series goes whole. The organizer's own meeting stays (<em>Kept</em>) — choose <em>Cancel</em> to cancel it with a message.</p>
+<h3 id="rooms-closed-for-works">2.6 Rooms closed for works</h3>
+<div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code>.\Invoke-MeetingCleanupOnPrem.ps1 -Room room-paris-01@contoso.com, room-paris-02@contoso.com -Start 2026-11-02 -End 2026-11-13 `
+    -Action Cancel -Comment 'The rooms of the 1st floor are closed for works.'
+</code></pre></div>
+<p>Every meeting of these rooms in the period, whoever organized it. A series loses only its occurrences in the period, and goes on after. The period is required with an action.</p>
+<h3 id="the-leavers-of-the-month">2.7 The leavers of the month</h3>
+<div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code>.\Invoke-MeetingCleanupOnPrem.ps1 -OrganizerFile .\leavers-2026-10.txt -SearchIn Organizer, Rooms
+</code></pre></div>
+<p>A text file with one address per line, or a CSV file (<code>PrimarySmtpAddress</code>, <code>UserPrincipalName</code>, <code>Address</code>...): each mailbox is read once for all of them, and the report has an <em>Organizers</em> tab.</p>
+<h3 id="undo-a-remove">2.8 Undo a Remove</h3>
+<div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code>.\Invoke-MeetingCleanupOnPrem.ps1 -Action Restore -FromReport .\reports\MeetingCleanupOnPrem_Remove_20261006-001346
+</code></pre></div>
+<p>The copies come back from Recoverable Items, as they were, <strong>without a message</strong>: an accepted room is busy again. It works for the retention of deleted items (<strong>14 days</strong> by default) and needs the role of <a href="MeetingCleanupOnPrem-Guide.html#rights-for-restore">Rights for Restore</a>. A cancelled or transferred meeting, and an occurrence removed in rooms mode, cannot be restored.</p>
+<h3 id="in-a-scheduled-task">2.9 In a scheduled task</h3>
+<div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code>pwsh -NoProfile -File C:\Tools\MeetingCleanupOnPrem\Invoke-MeetingCleanupOnPrem.ps1 -OrganizerFile C:\Tools\leavers.txt -Action Cancel -Comment 'This meeting is cancelled.' -Force
+</code></pre></div>
+<p><code>-Force</code> skips the confirmation (there is no one to type <em>YES</em>). The service account signs in from <code>Connection.CredentialFile</code> (1.1). The exit code says how it went (chapter 4); the output and the log of the day keep every line.</p>
+</div></section><section class="section" id="choose-the-meetings"><div class="section-head"><div class="section-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg></div><div><div class="section-eyebrow">Chapter 3</div><h2>Choose the meetings</h2></div></div><div class="section-body">
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Values</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-Organizer</code></td>
+<td>One or more addresses (any alias), or the X500 address of a deleted mailbox</td>
+<td><code>-Organizer megan.bowen@contoso.com</code></td>
+</tr>
+<tr>
+<td><code>-OrganizerFile</code></td>
+<td>A list of organizers: text (one per line) or CSV</td>
+<td><code>-OrganizerFile .\leavers.txt</code></td>
+</tr>
+<tr>
+<td><code>-Room</code> · <code>-RoomFile</code></td>
+<td>Rooms mode: every meeting of these rooms, whatever its organizer</td>
+<td><code>-Room room-paris-01@contoso.com</code></td>
+</tr>
+<tr>
+<td><code>-Start</code> · <code>-End</code></td>
+<td>The period (an end date without a time is included). Default: the coming year</td>
+<td><code>-Start 2026-11-01 -End 2026-12-31</code></td>
+</tr>
+<tr>
+<td><code>-Subject</code></td>
+<td>The subject contains this text (<code>*</code> and <code>?</code> allowed)</td>
+<td><code>-Subject 'Weekly*'</code></td>
+</tr>
+<tr>
+<td><code>-MeetingId</code></td>
+<td>Only these meetings (column <em>MeetingId</em> of a report)</td>
+<td><code>-MeetingId 040000008200E0...</code></td>
+</tr>
+<tr>
+<td><code>-SearchIn</code></td>
+<td>Where to search (below). Default: <code>Organizer</code>, <code>Rooms</code></td>
+<td><code>-SearchIn Rooms, AllMailboxes</code></td>
+</tr>
+<tr>
+<td><code>-Mailbox</code> · <code>-MailboxFile</code></td>
+<td>The mailboxes of <code>-SearchIn Mailboxes</code></td>
+<td><code>-MailboxFile .\team.txt</code></td>
+</tr>
+<tr>
+<td><code>-FromReport</code></td>
+<td>Act on exactly the meetings of a reviewed report</td>
+<td><code class="long">-FromReport .\reports\MeetingCleanupOnPrem_Report_...</code></td>
+</tr>
+<tr>
+<td><code>-Action</code></td>
+<td><code>Report</code> (default), <code>Remove</code>, <code>Cancel</code>, <code>Transfer</code>, <code>Restore</code></td>
+<td><code>-Action Cancel</code></td>
+</tr>
+<tr>
+<td><code>-Comment</code></td>
+<td>The message of a cancellation (or of the old organizer in a transfer)</td>
+<td><code>-Comment 'This meeting is cancelled.'</code></td>
+</tr>
+<tr>
+<td><code>-NewOrganizer</code></td>
+<td><em>Transfer</em>: the new organizer (a mailbox of the organization)</td>
+<td><code>-NewOrganizer jane.roe@contoso.com</code></td>
+</tr>
+<tr>
+<td><code>-Force</code></td>
+<td>No confirmation: scheduled task, script</td>
+<td><code>-Force</code></td>
+</tr>
+<tr>
+<td><code>-NoReport</code></td>
+<td>No CSV and no HTML: an action writes its backup and <code>Summary.json</code> only, a report writes nothing</td>
+<td><code>-NoReport</code></td>
+</tr>
+</tbody>
+</table></div>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th><code>-SearchIn</code></th>
+<th>Searches</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Organizer</code></td>
+<td>The organizer's calendar</td>
+<td>The mailbox still exists (skipped when Exchange PowerShell says it is gone).</td>
+</tr>
+<tr>
+<td><code>Rooms</code></td>
+<td>Every room mailbox (Exchange PowerShell; <code>Search.AllRooms = $false</code> to search only the rooms given), and the rooms of <code>Search.Rooms</code> / <code>Search.RoomFile</code></td>
+<td>Always useful: a meeting with a room is found even when its organizer is gone.</td>
+</tr>
+<tr>
+<td><code>Mailboxes</code></td>
+<td>The mailboxes of <code>-Mailbox</code> / <code>-MailboxFile</code></td>
+<td>A deleted organizer, meetings without room: his team.</td>
+</tr>
+<tr>
+<td><code>AllMailboxes</code></td>
+<td>Every mailbox of the organization (Exchange PowerShell)</td>
+<td>A deleted organizer, meetings without room, team unknown.</td>
+</tr>
+</tbody>
+</table></div>
+<p>A series is found when one of its occurrences falls in the period, and is handled as a whole (in rooms mode: its occurrences in the period only).</p>
+<p>The connection comes from the configuration; these parameters override it for one run: <code>-EwsUrl</code>, <code>-EwsMailbox</code> (the account that signs in), <code>-Authentication Windows | Basic</code>, <code>-AccessMode Impersonation | Delegate | Self</code>, <code>-CredentialUser</code> (asks for the password), <code>-ManagementShellMode Existing | Auto | Rps</code>, <code>-ManagementShellServer</code>, <code>-ManagementShellUri</code>, <code>-ConfigPath</code>.</p>
+</div></section><section class="section" id="results"><div class="section-head"><div class="section-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></svg></div><div><div class="section-eyebrow">Chapter 4</div><h2>Results</h2></div></div><div class="section-body">
+<p>Each run writes a new folder under <code>reports\</code>, named after the action and the time (<code>MeetingCleanupOnPrem_Remove_20261006-001346</code>). The console shows it at the end, with the next command to run:</p>
+<ul>
+<li><strong><code>MeetingCleanupOnPrem.html</code></strong> — the report: self-contained, it can be sent alone. Tiles, the search, and the <em>Meetings</em>, <em>Copies</em> and <em>Organizers</em> tabs, searchable and sortable; after a <em>Transfer</em>, the <strong>Transfers</strong> tab first: per meeting, from whom to whom, the new meeting and what became of the old one.</li>
+<li><strong><code>MeetingCleanupOnPrem-Meetings.csv</code></strong>, <strong><code>-Copies.csv</code></strong>, <strong><code>-Organizers.csv</code></strong> (and <strong><code>-Transfers.csv</code></strong> after a transfer) — the same data, separator <code>;</code>, open directly in Excel.</li>
+<li><strong><code>MeetingCleanupOnPrem-Summary.json</code></strong> — the whole result, used by <code>-FromReport</code> and <em>Restore</em>.</li>
+<li><strong><code>MeetingCleanupOnPrem-Backup.json</code></strong> — Remove, Cancel, Transfer: every meeting in full (subject, body, attendees, rooms, recurrence), written <strong>before</strong> any change.</li>
+</ul>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Meeting status</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Found</strong></td>
+<td>Report only: nothing was changed.</td>
+</tr>
+<tr>
+<td><strong>Removed</strong> · <strong>Cancelled</strong></td>
+<td>The copies of the attendees and rooms removed (the organizer's meeting <em>Kept</em>) · cancelled by its organizer, the copies left removed.</td>
+</tr>
+<tr>
+<td><strong>Transferred</strong></td>
+<td>Re-created by the new organizer, the old meeting cancelled or removed.</td>
+</tr>
+<tr>
+<td><strong>Restored</strong></td>
+<td>Every copy removed by the run is back.</td>
+</tr>
+<tr>
+<td><strong>Skipped</strong></td>
+<td>Left as it is (not selected, already over, cancelled before...): the reason is in the report.</td>
+</tr>
+<tr>
+<td><strong>Partial</strong> · <strong>Failed</strong></td>
+<td>Some · every request failed: each copy gives the Exchange error.</td>
+</tr>
+</tbody>
+</table></div>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Exit code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0</code></td>
+<td>Completed.</td>
+</tr>
+<tr>
+<td><code>2</code></td>
+<td>Finished with warnings: a copy not removed, a mailbox not read, a calendar read in part. The report says which.</td>
+</tr>
+<tr>
+<td><code>1</code></td>
+<td>Failed: read the error in red, and the log of the day in <code>logs\</code>.</td>
+</tr>
+</tbody>
+</table></div>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Message</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>EWS could not open the calendar: HTTP 401</em></td>
+<td>Wrong password, or the authentication of the EWS virtual directory: <code>Connection.WindowsPackage = 'NTLM'</code> when Kerberos to the EWS name fails.</td>
+</tr>
+<tr>
+<td><em>ErrorImpersonateUserDenied</em> · <em>ErrorAccessDenied</em></td>
+<td>ApplicationImpersonation missing for this mailbox (outside the management scope), or not applied yet.</td>
+</tr>
+<tr>
+<td><em>ErrorNonExistentMailbox</em></td>
+<td>No mailbox with this address (deleted, or an alias of another domain).</td>
+</tr>
+<tr>
+<td><em>Exchange RPS connection failed</em></td>
+<td><code>ManagementShell.ServerFqdn</code> / <code>ConnectionUri</code>, Kerberos to <code>http://&lt;server&gt;/PowerShell/</code>, or <code>RemotePowerShellEnabled</code> of the account.</td>
+</tr>
+<tr>
+<td><em>Get-RecoverableItems is not available</em></td>
+<td>The role Mailbox Import Export is missing, or not applied yet (open a new session).</td>
+</tr>
+<tr>
+<td><em>more than 500 items at ..., raise Connection.PageSize</em></td>
+<td>A calendar holds more items starting at the same time than a page: raise <code>Connection.PageSize</code> (up to 1,000).</td>
+</tr>
+<tr>
+<td><em>Confirmation needed: run interactively, or add -Force</em></td>
+<td>An action without a console (scheduled task): add <code>-Force</code>.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Anything else: <a href="MeetingCleanupOnPrem-Guide.html#appendix-a-troubleshooting">developer guide, Appendix A — Troubleshooting</a>; every status and column of the report: <a href="MeetingCleanupOnPrem-Guide.html#reading-the-report">developer guide, chapter 10</a>.</p>
+</div></section>
+<footer>Meeting Cleanup On-Prem 1.0.0 · Nicolas Fabert · generated on 2026-10-07 14:03 from MeetingCleanupOnPrem-UserGuide.md</footer></main>
+<button type="button" id="to-top" title="Back to top"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 14 6-6 6 6"/></svg></button>
+<dialog id="zoom"><img alt=""></dialog>
+<script>
+(() => {
+  "use strict";
+  // Theme toggle (no storage: the choice lasts for the page).
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    root.setAttribute("data-theme", root.getAttribute("data-theme") === "dark" ? "light" : "dark");
+  });
+  // Highlight the chapter being read in the sidebar.
+  const links = new Map(Array.from(document.querySelectorAll("aside a[data-target]")).map(a => [a.dataset.target, a]));
+  const observer = new IntersectionObserver(entries => {
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      links.forEach(a => a.classList.remove("active"));
+      const link = links.get(e.target.id);
+      if (link) { link.classList.add("active"); link.scrollIntoView({ block: "nearest" }); }
+    }
+  }, { rootMargin: "-20% 0px -70% 0px" });
+  document.querySelectorAll("section.section").forEach(s => observer.observe(s));
+  // Copy buttons.
+  document.querySelectorAll(".code .copy").forEach(button => button.addEventListener("click", async () => {
+    const text = button.closest(".code").querySelector("pre").innerText;
+    try { await navigator.clipboard.writeText(text); }
+    catch { const r = document.createRange(); r.selectNodeContents(button.closest(".code").querySelector("pre")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); document.execCommand("copy"); s.removeAllRanges(); }
+    const label = button.querySelector("span"); label.textContent = "Copied"; button.classList.add("done");
+    setTimeout(() => { label.textContent = "Copy"; button.classList.remove("done"); }, 1600);
+  }));
+  // Image zoom.
+  const zoom = document.getElementById("zoom");
+  document.querySelectorAll("figure img").forEach(img => img.addEventListener("click", () => { zoom.querySelector("img").src = img.src; zoom.showModal(); }));
+  zoom.addEventListener("click", () => zoom.close());
+  // Back to top.
+  const top = document.getElementById("to-top");
+  addEventListener("scroll", () => top.classList.toggle("visible", scrollY > 600), { passive: true });
+  top.addEventListener("click", () => scrollTo({ top: 0 }));
+})();
+</script>
+</body></html>

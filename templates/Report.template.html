@@ -1,0 +1,356 @@
+<!doctype html>
+<!--
+    Meeting Cleanup On-Prem - HTML template (from Meeting Cleanup 1.2.3)
+    Author  : Nicolas Fabert
+    Version : 1.0.0
+    Export-McoReport (src\MeetingCleanupOnPrem.Report.ps1) copies this file and replaces six markers, each exactly
+    once: TITLE (text), and SUMMARY, MEETINGS, COPIES, ORGANIZERS, TRANSFERS (JSON, in the script blocks at the end of
+    the body; TRANSFERS is an empty list outside a Transfer run, and its tab is hidden then).
+    Everything else is static: texts, colours and tabs can be changed here. Same design system as EAS OAuth
+    Mailbox, Message Trace Report and Purview DLP Report (--cp-* variables).
+-->
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<script>
+  (() => {
+    const param = new URLSearchParams(window.location.search).get("scoutTheme");
+    const theme = param === "light" || param === "dark" ? param : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", theme);
+    // scoutFocus=tables (documentation images): the tabs and their tables only.
+    if (new URLSearchParams(window.location.search).get("scoutFocus") === "tables") document.documentElement.setAttribute("data-focus", "tables");
+  })();
+</script>
+<style>
+:root {
+  color-scheme: light;
+  --cp-bg: #f7f4ef; --cp-bg-elevated: #fcfbf8; --cp-surface: #ffffff; --cp-surface-soft: #f5f5f5;
+  --cp-border: #dedede; --cp-border-strong: #919191; --cp-text: #242424; --cp-text-muted: #5c5c5c; --cp-text-soft: #6f6f6f;
+  --cp-accent: #b11f4b; --cp-accent-hover: #9a1a41; --cp-accent-soft: rgba(177, 31, 75, 0.08); --cp-accent-fg: #ffffff;
+  --cp-success: #16a34a; --cp-danger: #dc2626; --cp-warning: #d97706; --cp-link: #0078d4; --cp-info: #2563eb;
+  --cp-success-soft: rgba(22,163,74,0.12); --cp-danger-soft: rgba(220,38,38,0.12); --cp-warning-soft: rgba(217,119,6,0.14); --cp-neutral-soft: rgba(120,120,120,0.12); --cp-info-soft: rgba(37,99,235,0.10);
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12); --cp-highlight: rgba(177, 31, 75, 0.12);
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --cp-bg: #3d3b3a; --cp-bg-elevated: #343231; --cp-surface: #292929; --cp-surface-soft: #2e2e2e;
+  --cp-border: #474747; --cp-border-strong: #5f5f5f; --cp-text: #dedede; --cp-text-muted: #919191; --cp-text-soft: #b0b0b0;
+  --cp-accent: #fd8ea1; --cp-accent-hover: #fb7b91; --cp-accent-soft: rgba(253, 142, 161, 0.14); --cp-accent-fg: #1a1a1a;
+  --cp-success: #4ade80; --cp-danger: #f87171; --cp-warning: #fbbf24; --cp-link: #4da6ff; --cp-info: #60a5fa;
+  --cp-success-soft: rgba(74,222,128,0.14); --cp-danger-soft: rgba(248,113,113,0.16); --cp-warning-soft: rgba(251,191,36,0.16); --cp-neutral-soft: rgba(200,200,200,0.12); --cp-info-soft: rgba(96,165,250,0.14);
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32); --cp-highlight: rgba(253, 142, 161, 0.12);
+}
+* { box-sizing: border-box; }
+body { margin:0; padding:28px 32px; background:var(--cp-bg); color:var(--cp-text); font:14px "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif; }
+h1 { font-size:32px; font-weight:650; letter-spacing:-0.025em; margin:8px 0 12px; }
+h2 { font-size:18px; font-weight:600; margin:0 0 12px; }
+p { line-height:1.5; margin:8px 0; } .muted, small { color:var(--cp-text-muted); }
+a { color:var(--cp-link); } [hidden] { display:none !important; }
+header { position:relative; overflow:hidden; border:1px solid var(--cp-border); border-top:4px solid var(--cp-accent); border-radius:16px; padding:24px; margin-bottom:20px; background:linear-gradient(125deg,var(--cp-surface) 35%,var(--cp-accent-soft)); }
+header::before { content:""; position:absolute; width:280px; height:280px; right:-100px; top:-160px; border:40px solid var(--cp-highlight); border-radius:50%; pointer-events:none; }
+.hero-top { position:relative; display:flex; justify-content:space-between; gap:24px; align-items:flex-start; flex-wrap:wrap; }
+#origin { color:var(--cp-accent); font-size:11px; letter-spacing:0.1em; text-transform:uppercase; font-weight:700; }
+.subtitle { color:var(--cp-text-muted); max-width:760px; }
+.period { min-width:300px; padding:12px 16px; border:1px solid var(--cp-border); border-radius:0.625rem; background:var(--cp-surface); }
+.label { font-size:11px; color:var(--cp-accent); font-weight:700; letter-spacing:0.08em; text-transform:uppercase; display:block; margin-bottom:8px; }
+#period { font-size:13px; line-height:1.6; font-variant-numeric:tabular-nums; }
+.metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin:20px 0 16px; position:relative; }
+.tile { position:relative; overflow:hidden; padding:18px 20px; border:1px solid var(--cp-border); border-radius:16px; background:var(--cp-surface); transition:transform 160ms ease,border-color 160ms ease; }
+.tile:hover { transform:translateY(-3px); border-color:var(--cp-accent); }
+.tile::after { content:""; position:absolute; width:80px; height:80px; right:-28px; bottom:-32px; border:14px solid var(--cp-highlight); border-radius:50%; pointer-events:none; }
+.tile-primary { background:linear-gradient(125deg,var(--cp-accent-hover),var(--cp-accent)); border-color:var(--cp-accent); color:var(--cp-accent-fg); }
+.tile-tinted { background:linear-gradient(135deg,var(--cp-surface),var(--cp-accent-soft)); }
+.tile-label { display:block; font-size:12px; font-weight:600; margin-bottom:12px; }
+.tile strong { display:block; font-size:32px; font-weight:650; letter-spacing:-0.025em; font-variant-numeric:tabular-nums; }
+.tile small { display:block; margin-top:8px; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .tile-primary small { color:var(--cp-accent-fg); }
+.statusbar { position:relative; display:flex; height:8px; border-radius:8px; overflow:hidden; background:var(--cp-border); }
+.statusbar span { display:block; height:100%; }
+.legend { position:relative; display:flex; flex-wrap:wrap; gap:16px; font-size:11px; color:var(--cp-text-muted); margin-top:8px; }
+.legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
+section.block { background:var(--cp-surface); border:1px solid var(--cp-border); border-radius:16px; padding:20px; margin-bottom:20px; }
+.caption { font-size:12px; color:var(--cp-text-muted); margin:0 0 12px; }
+.scope { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+.scope-card { padding:12px 14px; border:1px solid var(--cp-border); border-radius:12px; background:linear-gradient(160deg,var(--cp-surface) 55%,var(--cp-surface-soft)); min-width:0; }
+.scope-card span { display:block; color:var(--cp-text-muted); font-size:11px; text-transform:uppercase; letter-spacing:0.06em; }
+.scope-card strong { display:block; margin-top:4px; font-weight:600; overflow-wrap:anywhere; }
+.scope-card em { display:block; margin-top:2px; font-style:normal; font-size:12px; color:var(--cp-text-muted); overflow-wrap:anywhere; }
+.pill { display:inline-block; padding:1px 9px; border-radius:999px; background:var(--cp-neutral-soft); color:var(--cp-text); font-size:12px; line-height:20px; font-weight:600; white-space:nowrap; }
+.pill.good { background:var(--cp-success-soft); color:var(--cp-success); } .pill.bad { background:var(--cp-danger-soft); color:var(--cp-danger); } .pill.warn { background:var(--cp-warning-soft); color:var(--cp-warning); } .pill.info { background:var(--cp-info-soft); color:var(--cp-info); } .pill.accent { background:var(--cp-accent-soft); color:var(--cp-accent); }
+.tabs { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 16px; border-bottom:1px solid var(--cp-border); }
+.tabs button { border:0; border-bottom:3px solid transparent; border-radius:0; background:none; padding:10px 14px; font-weight:600; color:var(--cp-text-muted); }
+.tabs button.active { color:var(--cp-accent); border-bottom-color:var(--cp-accent); }
+.tabs .count { font-weight:400; font-size:12px; margin-left:6px; color:var(--cp-text-muted); }
+input, button, select { font:inherit; color:var(--cp-text); background:var(--cp-surface); border:1px solid var(--cp-border); padding:7px 10px; border-radius:0.625rem; }
+button { cursor:pointer; } button:not(:disabled):hover { color:var(--cp-accent); border-color:var(--cp-accent); }
+:focus-visible { outline:2px solid var(--cp-accent); outline-offset:2px; }
+.controls { display:flex; gap:8px 12px; flex-wrap:wrap; align-items:center; margin:12px 0; }
+.controls label { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; }
+.search { width:min(420px,65vw); }
+.scroll { overflow:auto; max-height:62vh; border:1px solid var(--cp-border); border-radius:0.625rem; }
+table { width:100%; border-collapse:separate; border-spacing:0; }
+th, td { text-align:left; vertical-align:top; padding:10px 12px; border-bottom:1px solid var(--cp-border); }
+th { position:sticky; top:0; z-index:1; background:var(--cp-surface-soft); font-weight:600; font-size:12px; white-space:nowrap; cursor:pointer; user-select:none; }
+th.sorted::after { content:" \25BE"; color:var(--cp-accent); } th.sorted.asc::after { content:" \25B4"; }
+tbody tr:hover { background:var(--cp-accent-soft); } tr.click { cursor:pointer; }
+td { overflow-wrap:anywhere; } .num { text-align:right; font-variant-numeric:tabular-nums; } .mono { font-family:Consolas, "Cascadia Mono", monospace; font-size:12px; }
+.nowrap { white-space:nowrap; } .addr { overflow-wrap:normal; } .wide { min-width:190px; } .sub.to { color:var(--cp-text); margin-top:6px; white-space:nowrap; }
+[data-focus="tables"] body > header, [data-focus="tables"] #notices, [data-focus="tables"] body > section.block:not(#tables), [data-focus="tables"] footer { display:none; } .sub { display:block; color:var(--cp-text-muted); font-size:12px; margin-top:2px; }
+.empty { padding:24px; text-align:center; color:var(--cp-text-muted); }
+.notice { position:relative; margin:0 0 16px; padding:10px 14px; border-radius:10px; border-left:4px solid var(--cp-warning); background:var(--cp-warning-soft); }
+.notice.info { border-left-color:var(--cp-info); background:var(--cp-info-soft); }
+.notice ul { margin:4px 0 0; padding-left:18px; }
+dialog { border:1px solid var(--cp-border); border-radius:16px; padding:0; background:var(--cp-surface); color:var(--cp-text); width:min(1100px,95vw); box-shadow:var(--cp-shadow); }
+dialog::backdrop { background:rgba(0,0,0,0.35); }
+.dialog-head { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid var(--cp-border); }
+.dialog-head h2 { margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dialog-body { padding:16px 20px; max-height:78vh; overflow:auto; }
+dl { display:grid; grid-template-columns:180px 1fr; gap:6px 16px; margin:0 0 16px; } dt { color:var(--cp-text-muted); } dd { margin:0; overflow-wrap:anywhere; }
+footer { color:var(--cp-text-muted); font-size:12px; text-align:center; margin-top:8px; }
+@media (max-width: 980px) { .metrics, .scope { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media print { body { background:#fff; padding:0; } .controls, .tabs { display:none; } .scroll { max-height:none; overflow:visible; } }
+</style></head>
+<body>
+<header>
+  <div class="hero-top">
+    <div>
+      <div id="origin">Exchange Server &middot; Meeting Cleanup On-Prem</div>
+      <h1 id="title">Meetings</h1>
+      <p class="subtitle" id="subtitle"></p>
+      <div id="status"></div>
+    </div>
+    <div class="period"><span class="label">Run</span><div id="period"></div></div>
+  </div>
+  <div class="metrics" id="metrics"></div>
+  <div class="statusbar" id="bar"></div>
+  <div class="legend" id="legend"></div>
+</header>
+
+<div id="notices"></div>
+
+<section class="block">
+  <h2>Search</h2>
+  <p class="caption">Who was searched, over which period and where. Each meeting found is then looked up in the calendar of every internal attendee, room and member of an invited group.</p>
+  <div class="scope" id="scope"></div>
+</section>
+
+<section class="block" id="tables">
+  <div class="tabs" role="tablist">
+    <button class="active" data-tab="meetings">Meetings<span class="count" id="count-meetings"></span></button>
+    <button data-tab="copies">Copies<span class="count" id="count-copies"></span></button>
+    <button data-tab="organizers">Organizers<span class="count" id="count-organizers"></span></button>
+    <button data-tab="transfers" id="tab-button-transfers" hidden>Transfers<span class="count" id="count-transfers"></span></button>
+  </div>
+  <div id="tab-meetings">
+    <div class="controls"><input class="search" id="search-meetings" type="search" placeholder="Search a subject, an organizer, a status..."><label>Status <select id="filter-meetings"><option value="">All</option></select></label></div>
+    <div class="scroll"><table id="meetings"><thead></thead><tbody></tbody></table><div class="empty" id="empty-meetings" hidden>No meeting.</div></div>
+  </div>
+  <div id="tab-copies" hidden>
+    <div class="controls"><input class="search" id="search-copies" type="search" placeholder="Search a mailbox, a meeting, a result..."><label>Result <select id="filter-copies"><option value="">All</option></select></label><label>Role <select id="filter-role"><option value="">All</option></select></label></div>
+    <div class="scroll"><table id="copies"><thead></thead><tbody></tbody></table><div class="empty" id="empty-copies" hidden>No copy.</div></div>
+  </div>
+  <div id="tab-organizers" hidden>
+    <div class="controls"><input class="search" id="search-organizers" type="search" placeholder="Search an organizer, a state..."><label>State <select id="filter-organizers"><option value="">All</option></select></label></div>
+    <div class="scroll"><table id="organizers"><thead></thead><tbody></tbody></table><div class="empty" id="empty-organizers" hidden>No organizer.</div></div>
+  </div>
+  <div id="tab-transfers" hidden>
+    <div class="controls"><input class="search" id="search-transfers" type="search" placeholder="Search a meeting, an organizer, a note..."><label>Status <select id="filter-transfers"><option value="">All</option></select></label><label>Method <select id="filter-method"><option value="">All</option></select></label></div>
+    <div class="scroll"><table id="transfers"><thead></thead><tbody></tbody></table><div class="empty" id="empty-transfers" hidden>No meeting was part of the transfer.</div></div>
+  </div>
+</section>
+
+<dialog id="detail"><div class="dialog-head"><h2 id="detail-title"></h2><button id="detail-close">Close</button></div><div class="dialog-body" id="detail-body"></div></dialog>
+<footer id="footer"></footer>
+
+<script type="application/json" id="data-summary">{{SUMMARY_JSON}}</script>
+<script type="application/json" id="data-meetings">{{MEETINGS_JSON}}</script>
+<script type="application/json" id="data-copies">{{COPIES_JSON}}</script>
+<script type="application/json" id="data-organizers">{{ORGANIZERS_JSON}}</script>
+<script type="application/json" id="data-transfers">{{TRANSFERS_JSON}}</script>
+<script>
+(() => {
+  const read = id => JSON.parse(document.getElementById(id).textContent || "null");
+  const S = read("data-summary") || {};
+  const M = [].concat(read("data-meetings") || []).filter(Boolean);
+  const C = [].concat(read("data-copies") || []).filter(Boolean);
+  const O = [].concat(read("data-organizers") || []).filter(Boolean);
+  const T = [].concat(read("data-transfers") || []).filter(Boolean);
+  const $ = id => document.getElementById(id);
+  const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const fmt = n => Number(n || 0).toLocaleString("en-US");
+  const list = v => v == null ? [] : (Array.isArray(v) ? v : [v]);
+  const n = S.Counts || {};
+  const tone = s => ({ Removed: "good", Cancelled: "good", "Already gone": "good", Restored: "good", "Already present": "good", Completed: "good", Yes: "good", Mailbox: "good", Present: "info", Found: "info", Kept: "warn", Partial: "warn", Warning: "warn", "Not processed": "warn", "Not found": "warn", "Not restorable": "warn", Transferred: "good", Created: "good", "Mailbox deleted": "warn", "Not read": "warn", NoMailbox: "warn", NotInDirectory: "warn", "No copy": "", "Exchange Online": "info", "Re-created": "accent", "Account deleted, mailbox present": "warn", "No mailbox": "warn", "Not in the directory": "warn", "Mailbox present": "good", Failed: "bad", "Not done": "bad", No: "bad", Skipped: "", "Nothing to do": "", Expanded: "accent" }[s] || "");
+  const pill = s => s ? `<span class="pill ${tone(s)}">${esc(s)}</span>` : "";
+  const organizers = list(S.Organizers).map(o => o.DisplayName ? `${o.DisplayName} <${o.PrimaryAddress}>` : o.Input);
+  const action = S.Action || "Report";
+
+  const req0 = S.Request || {};
+  const rooms = req0.Mode === "Rooms";
+  const roomList = list(req0.Room);
+  const who = rooms ? (roomList.length > 3 ? `${roomList.length} rooms` : `the rooms ${roomList.join(", ")}`) : (organizers.length > 3 ? `${organizers.length} organizers` : (organizers.join(", ") || "the organizer"));
+  $("title").textContent = { Report: `Meetings of ${who}`, Cancel: rooms ? `Meetings of ${who} cancelled` : "Meetings cancelled and cleaned", Remove: "Meetings removed from the attendees and rooms", Restore: "Copies restored", Transfer: `Meetings transferred to ${S.NewOrganizer || "a new organizer"}` }[action] || "Meetings";
+  $("subtitle").textContent = S.ActionText || "";
+  $("status").innerHTML = pill(S.Status) + (S.Error ? ` <span class="muted">${esc(S.Error)}</span>` : "");
+  const req = S.Request || {};
+  $("period").innerHTML = [
+    ["Period", `${esc(req.StartText)} &rarr; ${esc(req.EndText)}`],
+    ["Time zone", esc(req.TimeZone)],
+    ["Generated", esc(S.GeneratedText)],
+    ["Duration", `${esc(S.DurationSeconds)} s`],
+    ["Organization", esc(S.Organization || S.Tenant)]
+  ].map(([k, v]) => `<div><span class="muted">${k}</span> &nbsp;${v}</div>`).join("");
+
+  const restore = action === "Restore";
+  const transfer = action === "Transfer";
+  const tiles = [
+    { label: "Meetings", value: n.Meetings, small: `${fmt(n.Series)} series · ${fmt(n.Selected)} selected${n.Organizers > 1 ? " · " + fmt(n.Organizers) + " organizers" : ""}`, cls: "tile-primary" },
+    { label: "Copies", value: n.Copies, small: `in ${fmt(n.Mailboxes)} mailbox(es)`, cls: "tile-tinted" },
+    { label: "In rooms", value: n.RoomCopies, small: action === "Report" ? `${fmt(n.OrganizerCopies)} still in the organizer's calendar` : `${fmt(n.OrganizerCopies)} organizer cop${n.OrganizerCopies === 1 ? "y" : "ies"} found`, cls: "" },
+    action === "Report"
+      ? { label: "Not processed", value: n.NotProcessed, small: "external, deleted or not reachable", cls: "" }
+      : restore
+        ? { label: "Restored", value: n.Restored, small: `${fmt(n.AlreadyPresent)} already present · ${fmt(n.NotFound)} not found · ${fmt(n.Failed)} failed`, cls: "" }
+        : transfer
+          ? { label: "Transferred", value: n.Transferred, small: `to ${S.NewOrganizer || ""} · ${fmt(n.Removed)} old copies removed · ${fmt(n.Failed)} failed`, cls: "" }
+          : { label: "Done", value: (n.Removed || 0) + (n.Cancelled || 0), small: `${fmt(n.AlreadyGone)} already gone · ${fmt(n.Failed)} failed · ${fmt(n.Kept)} kept`, cls: "" }
+  ];
+  $("metrics").innerHTML = tiles.map(t => `<div class="tile ${t.cls}"><span class="tile-label">${t.label}</span><strong>${fmt(t.value)}</strong><small>${esc(t.small)}</small></div>`).join("");
+  const parts = action === "Report"
+    ? [["Organizer copy", n.OrganizerCopies, "var(--cp-info)"], ["Attendees", (n.Copies || 0) - (n.RoomCopies || 0) - (n.OrganizerCopies || 0), "var(--cp-accent)"], ["Rooms", n.RoomCopies, "var(--cp-success)"], ["Not processed", n.NotProcessed, "var(--cp-warning)"]]
+    : restore
+      ? [["Restored", n.Restored, "var(--cp-success)"], ["Already present", n.AlreadyPresent, "var(--cp-info)"], ["Not found", n.NotFound, "var(--cp-warning)"], ["Not restorable", n.NotRestorable, "var(--cp-border-strong)"], ["Failed", n.Failed, "var(--cp-danger)"]]
+      : transfer
+        ? [["Transferred", n.Transferred, "var(--cp-success)"], ["Old copies removed", n.Removed, "var(--cp-info)"], ["Cancelled by the old organizer", n.Cancelled, "var(--cp-border-strong)"], ["Failed", n.Failed, "var(--cp-danger)"]]
+        : [["Removed", n.Removed, "var(--cp-success)"], ["Cancelled", n.Cancelled, "var(--cp-info)"], ["Already gone", n.AlreadyGone, "var(--cp-border-strong)"], ["Kept", n.Kept, "var(--cp-warning)"], ["Failed", n.Failed, "var(--cp-danger)"]];
+  const sum = parts.reduce((a, p) => a + Math.max(0, p[1] || 0), 0) || 1;
+  $("bar").innerHTML = parts.map(p => `<span style="width:${100 * Math.max(0, p[1] || 0) / sum}%;background:${p[2]}"></span>`).join("");
+  $("legend").innerHTML = parts.map(p => `<span><i style="background:${p[2]}"></i>${p[0]} ${fmt(p[1])}</span>`).join("");
+
+  const notes = [];
+  if (list(S.Warnings).length) notes.push(`<div class="notice"><strong>Warnings</strong><ul>${list(S.Warnings).map(w => `<li>${esc(w)}</li>`).join("")}</ul></div>`);
+  if (action === "Remove" && n.Kept) notes.push(`<div class="notice info">${fmt(n.Kept)} meeting(s) stay in the calendar of their organizer: Remove only cleans the attendees and the rooms, silently. Run the action <strong>Cancel</strong> to cancel them with a message.</div>`);
+  if (S.CleanupComment) notes.push(`<div class="notice info"><strong>Cancellation message:</strong> ${esc(S.CleanupComment)}</div>`);
+  if (n.OccurrenceCopies) notes.push(`<div class="notice info"><strong>Rooms:</strong> ${fmt(M.filter(m => m.Scope === "Occurrences").length)} series limited to their occurrences in the period (${fmt(n.OccurrenceCopies)} occurrence copies): the series go on outside the period. A removed occurrence cannot be restored by the tool (Backup.json lists it).</div>`);
+  if (transfer) notes.push(`<div class="notice info"><strong>Transfer to ${esc(S.NewOrganizer)}:</strong> Exchange Server has no native organizer transfer: each meeting was re-created and sent again by the new organizer (a series from its next occurrence), the attendees answer again. The old copies were removed without a message, or cancelled by their old organizer when he still has a mailbox.</div>`);
+  if (S.FromReport) notes.push(`<div class="notice info">${restore ? "Restore of the copies removed by the run of" : "Replay of the reviewed report"} <span class="mono">${esc(S.FromReport)}</span>.</div>`);
+  if (S.BackupFile) notes.push(`<div class="notice info"><strong>Backup before any change:</strong> <span class="mono">${esc(S.BackupFile)}</span>. ${transfer ? "A transfer that failed after removing room copies is undone with" : "To undo a Remove:"} <span class="mono">-Action Restore -FromReport &lt;this folder&gt;</span>, within the retention of deleted items.</div>`);
+  $("notices").innerHTML = notes.join("");
+
+  const sr = S.Searched || {};
+  const scopes = { Organizer: "organizer's calendar", Rooms: "room mailboxes", Mailboxes: "mailboxes of a list", AllMailboxes: "every mailbox" };
+  $("scope").innerHTML = [
+    rooms ? ["Rooms", `${roomList.length > 3 ? fmt(roomList.length) + " rooms" : roomList.map(esc).join("<br>")}<em>every organizer · ${fmt(list(S.Organizers).length)} organizer(s) concerned, see the Organizers tab</em>`] : ["Organizer", list(S.Organizers).length > 3 ? `${fmt(list(S.Organizers).length)} organizers<em>${fmt(list(S.Organizers).filter(o => o.State === "Mailbox").length)} with a mailbox · see the Organizers tab</em>` : (list(S.Organizers).map(o => `${esc(o.DisplayName || o.Input)}<em>${esc(o.PrimaryAddress)} · ${esc(o.Detail)}</em>`).join("") || "-")],
+    ["Meetings", `${esc(req.StartText)} &rarr; ${esc(req.EndText)}<em>${req.Subject ? "subject contains '" + esc(req.Subject) + "'" : "every subject"}${list(req.MeetingId).length ? " · " + list(req.MeetingId).length + " meeting ID(s)" : ""}</em>`],
+    ["Searched in", `${rooms ? "these rooms only" : (list(req.SearchIn).map(s => esc(scopes[s] || s)).join(", ") || "-")}<em>${fmt(sr.Read)} mailbox(es) read · ${fmt(sr.Events)} item(s) · ${fmt(sr.NoMailbox)} without mailbox${sr.Denied ? " · " + fmt(sr.Denied) + " denied" : ""}</em>`],
+    ["Connection", `${esc(S.AppName || S.AppId)}<em>${esc(S.Tool)} ${esc(S.Version)} · ${esc(action)}</em>`]
+  ].map(([k, v]) => `<div class="scope-card"><span>${k}</span><strong>${v}</strong></div>`).join("");
+
+  // ---- tables ------------------------------------------------------------------------------------------
+  function table(id, columns, rows, onClick) {
+    const el = $(id), head = el.querySelector("thead"), body = el.querySelector("tbody");
+    let sortKey = null, asc = true;
+    head.innerHTML = "<tr>" + columns.map((c, i) => `<th data-i="${i}" class="${c.num ? "num" : ""}">${c.label}</th>`).join("") + "</tr>";
+    const render = list => {
+      body.innerHTML = list.map((r, i) => `<tr data-i="${i}" class="${onClick ? "click" : ""}">${columns.map(c => `<td class="${c.cls || ""}">${c.html ? c.html(r) : esc(r[c.key])}</td>`).join("")}</tr>`).join("");
+      $("empty-" + id).hidden = list.length > 0;
+      if (onClick) body.querySelectorAll("tr").forEach(tr => tr.addEventListener("click", () => onClick(list[+tr.dataset.i])));
+    };
+    let current = rows;
+    head.querySelectorAll("th").forEach(th => th.addEventListener("click", () => {
+      const c = columns[+th.dataset.i]; asc = sortKey === c.key ? !asc : true; sortKey = c.key;
+      head.querySelectorAll("th").forEach(x => x.classList.remove("sorted", "asc")); th.classList.add("sorted"); if (asc) th.classList.add("asc");
+      current = [...current].sort((a, b) => { const x = a[c.sort || c.key] ?? "", y = b[c.sort || c.key] ?? ""; return (typeof x === "number" ? x - y : String(x).localeCompare(String(y))) * (asc ? 1 : -1); });
+      render(current);
+    }));
+    return { set: list => { current = list; render(list); } };
+  }
+  const meetingCols = [
+    { key: "StartText", label: "Start", cls: "nowrap mono" },
+    { key: "Subject", label: "Subject", html: r => `<strong>${esc(r.Subject || "(no subject)")}</strong><span class="sub">${esc(r.Kind === "Series" ? r.Recurrence : r.Location)}</span>` },
+    { key: "Organizer", label: "Organizer", html: r => `${esc(r.OrganizerName || r.Organizer)}<span class="sub">${esc(r.OrganizerName ? r.Organizer : "")}</span>` },
+    { key: "Kind", label: "Kind", html: r => r.Kind === "Series" ? `<span class="pill accent">Series</span>${r.Scope === "Occurrences" ? `<span class="sub">${fmt(r.Occurrences)} occurrence(s) in the period</span>` : (r.NextInPeriod ? `<span class="sub">next ${esc(r.NextInPeriod)}</span>` : "")}` : "Single" },
+    { key: "OrganizerCopy", label: "Organizer copy", html: r => pill(r.OrganizerCopy) },
+    { key: "Copies", label: "Copies", num: true, cls: "num" },
+    { key: "RoomCopies", label: "Rooms", num: true, cls: "num" },
+    { key: "NotProcessed", label: "Not processed", num: true, cls: "num" },
+    { key: "Status", label: "Status", html: r => pill(r.Status) + (r.Cancelled ? ` <span class="pill warn">cancelled before</span>` : "") + (r.NewOrganizer && r.Status !== "Skipped" ? `<span class="sub">to ${esc(r.NewOrganizer)}${r.TransferMethod ? " · " + "re-created" : ""}</span>` : "") }
+  ];
+  const copyCols = [
+    { key: "Mailbox", label: "Mailbox", cls: "mono" },
+    { key: "Role", label: "Role", html: r => pill(r.Role === "Room" ? "Room" : r.Role) },
+    { key: "MeetingSubject", label: "Meeting", html: r => esc(r.MeetingSubject) + (r.Occurrence ? `<span class="sub">occurrence ${esc(r.Occurrence)}</span>` : "") },
+    { key: "Via", label: "Found by" },
+    { key: "Action", label: "Action" },
+    { key: "Result", label: "Result", html: r => pill(r.Result) + (r.HttpStatus ? `<span class="sub">HTTP ${esc(r.HttpStatus)}</span>` : "") },
+    { key: "Verified", label: "Verified", html: r => pill(r.Verified) },
+    { key: "Detail", label: "Detail" }
+  ];
+  const organizerCols = [
+    { key: "DisplayName", label: "Organizer", html: r => `<strong>${esc(r.DisplayName || r.Input)}</strong><span class="sub">${esc(r.PrimaryAddress)}</span>` },
+    { key: "State", label: "Mailbox", html: r => pill(r.State) + `<span class="sub">${esc(r.Detail)}</span>` },
+    { key: "Meetings", label: "Meetings", num: true, cls: "num" },
+    { key: "Series", label: "Series", num: true, cls: "num" },
+    { key: "Copies", label: "Copies", num: true, cls: "num" },
+    { key: "Removed", label: "Removed", num: true, cls: "num" },
+    { key: "Cancelled", label: "Cancelled", num: true, cls: "num" },
+    { key: "Restored", label: "Restored", num: true, cls: "num" },
+    { key: "Transferred", label: "Transferred", num: true, cls: "num" },
+    { key: "Failed", label: "Failed", num: true, cls: "num" }
+  ];
+  // Transfer: one row per meeting, the organizer change at a glance; a row opens the meeting and its copies.
+  const transferCols = [
+    { key: "StartText", label: "Start", cls: "nowrap mono" },
+    { key: "Subject", label: "Meeting", cls: "wide", html: r => `<strong>${esc(r.Subject || "(no subject)")}</strong><span class="sub">${esc(r.Kind === "Series" ? r.Recurrence : "Single")}</span>` },
+    { key: "OldOrganizer", label: "From &rarr; to", cls: "addr", html: r => `${esc(r.OldOrganizerName || r.OldOrganizer)}<span class="sub">${esc(r.OldOrganizerName ? r.OldOrganizer : "")}</span>${r.OldOrganizerState ? `<span class="sub" title="${esc(r.OldOrganizerDetail)}">${pill(r.OldOrganizerState)}</span>` : ""}<span class="sub to">&rarr; <strong>${esc(r.NewOrganizer || "-")}</strong></span>` },
+    { key: "Method", label: "Method", html: r => r.Method ? pill(r.Method) + `<span class="sub">${r.Method === "Re-created" ? "one invitation, answered again" : "answers kept"}</span>` : `<span class="muted">-</span>` },
+    { key: "Status", label: "Status", html: r => pill(r.Status) },
+    { key: "NewMeeting", label: "New meeting", html: r => (r.NewMeeting ? pill(r.NewMeeting) : `<span class="muted">-</span>`) + (r.Method === "Re-created" && r.NewMeeting === "Created" ? `<span class="sub">invited ${fmt(r.Invited)} attendee(s) · ${fmt(r.Rooms)} room(s)</span>` : "") + (r.NewMeetingId ? `<span class="sub mono" title="${esc(r.NewMeetingId)}">${esc(r.NewMeetingId.slice(-16))}</span>` : "") },
+    { key: "OldOrganizerCopy", label: "Old meeting", html: r => pill(r.OldOrganizerCopy) + `<span class="sub">at the old organizer</span>` },
+    { key: "OldCopiesRemoved", label: "Old copies", num: true, cls: "num", html: r => r.Method === "Exchange Online" ? `<span class="muted">updated in place</span>` : fmt(r.OldCopiesRemoved) + `<span class="sub">removed</span>` + (r.OldCopiesFailed ? `<span class="sub"><span class="pill bad">${fmt(r.OldCopiesFailed)} failed</span></span>` : "") + (r.OldCopiesLeft ? `<span class="sub">${fmt(r.OldCopiesLeft)} left</span>` : "") },
+    { key: "Notes", label: "Notes", html: r => esc(list(r.Notes).join(" ")) || `<span class="muted">-</span>` }
+  ];
+  const tm = table("meetings", meetingCols, M, showMeeting);
+  const tc = table("copies", copyCols, C, null);
+  const to = table("organizers", organizerCols, O, null);
+  const tt = table("transfers", transferCols, T, r => { const m = M.find(x => x.MeetingId === r.MeetingId); if (m) showMeeting(m); });
+  const fill = (sel, values) => [...new Set(values.filter(Boolean))].sort().forEach(v => sel.insertAdjacentHTML("beforeend", `<option>${esc(v)}</option>`));
+  fill($("filter-meetings"), M.map(m => m.Status)); fill($("filter-copies"), C.map(c => c.Result || "(none)")); fill($("filter-role"), C.map(c => c.Role)); fill($("filter-organizers"), O.map(o => o.State)); fill($("filter-transfers"), T.map(r => r.Status)); fill($("filter-method"), T.map(r => r.Method || "(not transferred)"));
+  const textOf = o => Object.values(o).join(" ").toLowerCase();
+  const applyMeetings = () => { const q = $("search-meetings").value.toLowerCase(), s = $("filter-meetings").value; tm.set(M.filter(m => (!q || textOf(m).includes(q)) && (!s || m.Status === s))); };
+  const applyCopies = () => { const q = $("search-copies").value.toLowerCase(), s = $("filter-copies").value, r = $("filter-role").value; tc.set(C.filter(c => (!q || textOf(c).includes(q)) && (!s || (c.Result || "(none)") === s) && (!r || c.Role === r))); };
+  ["search-meetings", "filter-meetings"].forEach(id => $(id).addEventListener("input", applyMeetings));
+  ["search-copies", "filter-copies", "filter-role"].forEach(id => $(id).addEventListener("input", applyCopies));
+  const applyOrganizers = () => { const q = $("search-organizers").value.toLowerCase(), s = $("filter-organizers").value; to.set(O.filter(o => (!q || textOf(o).includes(q)) && (!s || o.State === s))); };
+  ["search-organizers", "filter-organizers"].forEach(id => $(id).addEventListener("input", applyOrganizers));
+  const applyTransfers = () => { const q = $("search-transfers").value.toLowerCase(), s = $("filter-transfers").value, k = $("filter-method").value; tt.set(T.filter(r => (!q || textOf(r).includes(q)) && (!s || r.Status === s) && (!k || (r.Method || "(not transferred)") === k))); };
+  ["search-transfers", "filter-transfers", "filter-method"].forEach(id => $(id).addEventListener("input", applyTransfers));
+  applyMeetings(); applyCopies(); applyOrganizers(); applyTransfers();
+  $("count-meetings").textContent = fmt(M.length); $("count-copies").textContent = fmt(C.length); $("count-organizers").textContent = fmt(O.length); $("count-transfers").textContent = fmt(T.length);
+  document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => {
+    document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("active", x === b));
+    ["meetings", "copies", "organizers", "transfers"].forEach(t => { $("tab-" + t).hidden = b.dataset.tab !== t; });
+  }));
+  // A Transfer report opens on its Transfers tab.
+  if (transfer && T.length) { $("tab-button-transfers").hidden = false; $("tab-button-transfers").click(); }
+
+  function showMeeting(m) {
+    $("detail-title").textContent = m.Subject || "(no subject)";
+    const rows = C.filter(c => c.MeetingId === m.MeetingId);
+    const dl = [
+      ["Organizer", `${esc(m.OrganizerName)} <span class="mono">${esc(m.Organizer)}</span>`],
+      ["When", `${esc(m.StartText)} &rarr; ${esc(m.EndText)}`],
+      ["Kind", m.Kind === "Series" ? `Series · ${esc(m.Recurrence)}${m.NextInPeriod ? " · next in the period " + esc(m.NextInPeriod) : ""}` : "Single meeting"],
+      ["Location", esc(m.Location || "-")],
+      ["Organizer copy", pill(m.OrganizerCopy)],
+      ["Status", pill(m.Status) + (m.NewOrganizer ? ` <span class="muted">to ${esc(m.NewOrganizer)}${m.NewMeetingId ? " · new meeting ID " + esc(m.NewMeetingId) : ""}</span>` : "")],
+      ["Meeting ID", `<span class="mono">${esc(m.MeetingId)}</span>`],
+      ["Notes", esc(list(m.Notes).join(" ")) || "-"]
+    ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+    const rowsHtml = rows.map(c => `<tr><td class="mono">${esc(c.Mailbox)}${c.Occurrence ? `<span class="sub">occurrence ${esc(c.Occurrence)}</span>` : ""}</td><td>${pill(c.Role)}</td><td>${esc(c.Via)}</td><td>${esc(c.Response)}${c.ShowAs ? `<span class="sub">${esc(c.ShowAs)}</span>` : ""}</td><td>${esc(c.Action)}</td><td>${pill(c.Result)}</td><td>${pill(c.Verified)}</td><td>${esc(c.Detail)}</td></tr>`).join("");
+    $("detail-body").innerHTML = `<dl>${dl}</dl><div class="scroll"><table><thead><tr><th>Mailbox</th><th>Role</th><th>Found by</th><th>Response</th><th>Action</th><th>Result</th><th>Verified</th><th>Detail</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`;
+    $("detail").showModal();
+  }
+  $("detail-close").addEventListener("click", () => $("detail").close());
+  $("footer").textContent = `${S.Tool || "Meeting Cleanup"} ${S.Version || ""} · Nicolas Fabert · EWS and Exchange PowerShell · nothing in this file was sent anywhere`;
+})();
+</script>
+</body></html>

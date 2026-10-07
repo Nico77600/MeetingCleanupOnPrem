@@ -1,0 +1,9 @@
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><m:GetItemResponse xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages" xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types"><m:ResponseMessages><m:GetItemResponseMessage ResponseClass="Success"><m:ResponseCode>NoError</m:ResponseCode><m:Items>
+<t:CalendarItem><t:ItemId Id="AAMk1=" ChangeKey="DwAA"/><t:Subject>Weekly &amp; review</t:Subject><t:ItemClass>IPM.Appointment</t:ItemClass><t:Body BodyType="Text">Agenda</t:Body>
+<t:UID>040000008200e00074c5b7101a82e008</t:UID><t:Start>2030-01-07T09:00:00Z</t:Start><t:End>2030-01-07T10:00:00Z</t:End><t:IsCancelled>false</t:IsCancelled>
+<t:Recurrence><t:WeeklyRecurrence><t:Interval>2</t:Interval><t:DaysOfWeek>Monday</t:DaysOfWeek></t:WeeklyRecurrence><t:EndDateRecurrence><t:StartDate>2030-01-07+01:00</t:StartDate><t:EndDate>2030-06-30+02:00</t:EndDate></t:EndDateRecurrence></t:Recurrence>
+<t:CalendarItemType>RecurringMaster</t:CalendarItemType><t:MyResponseType>Organizer</t:MyResponseType>
+<t:Organizer><t:Mailbox><t:Name>Org</t:Name><t:EmailAddress>Org@Contoso.test</t:EmailAddress></t:Mailbox></t:Organizer>
+<t:RequiredAttendees><t:Attendee><t:Mailbox><t:EmailAddress>A1@contoso.test</t:EmailAddress></t:Mailbox></t:Attendee><t:Attendee><t:Mailbox><t:Name>No address</t:Name></t:Mailbox></t:Attendee></t:RequiredAttendees>
+<t:Resources><t:Attendee><t:Mailbox><t:EmailAddress>room1@contoso.test</t:EmailAddress></t:Mailbox></t:Attendee></t:Resources><t:StartTimeZone Id="Romance Standard Time"/>
+</t:CalendarItem></m:Items></m:GetItemResponseMessage></m:ResponseMessages></m:GetItemResponse></s:Body></s:Envelope>
