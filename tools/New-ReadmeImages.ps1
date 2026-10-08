@@ -12,15 +12,15 @@
     them with <picture>, which picks the light or dark image from the theme of the reader.
 
     Sources:
-      docs\MeetingCleanupOnPrem-Guide.md     the cards block of the introduction, the version
-      docs\MeetingCleanupOnPrem-Guide.html   the CSS (run tools\Build-Documentation.ps1 first)
+      package\docs\MeetingCleanupOnPrem-Guide.md     the cards block of the introduction, the version
+      package\docs\MeetingCleanupOnPrem-Guide.html   the CSS (run tools\Build-Documentation.ps1 first)
       tools\Build-Documentation.ps1          the icons
 
     Screenshots: Microsoft Edge in headless mode, with a temporary profile, 2x resolution. Only local files
-    are opened. Output: docs\images\readme-<name>-light.png and readme-<name>-dark.png.
+    are opened. Output: package\docs\images\readme-<name>-light.png and readme-<name>-dark.png.
 
 .PARAMETER OutputFolder
-    Default: docs\images next to the tools folder.
+    Default: package\docs\images in the repository.
 
 .PARAMETER KeepWork
     Keeps the work folder (the HTML pages of the graphics) and shows its path.
@@ -39,7 +39,8 @@ param(
     [switch]$KeepWork
 )
 $ErrorActionPreference = 'Stop'
-$root = Split-Path $PSScriptRoot -Parent
+$repoRoot = Split-Path $PSScriptRoot -Parent
+$root = Join-Path $repoRoot 'package'
 if (-not $OutputFolder) { $OutputFolder = Join-Path $root 'docs\images' }
 
 #region Assets of the guide ------------------------------------------------------------------------
@@ -53,10 +54,10 @@ function ConvertTo-ReadmeInline([string]$Text) {
 
 function Get-ReadmeAssets {
     param([string]$Root)
-    $builder = Join-Path $Root 'tools\Build-Documentation.ps1'
+    $builder = Join-Path $repoRoot 'tools\Build-Documentation.ps1'
     $guideHtml = Join-Path $Root 'docs\MeetingCleanupOnPrem-Guide.html'
     $guideMd = Join-Path $Root 'docs\MeetingCleanupOnPrem-Guide.md'
-    if (-not (Test-Path $guideHtml)) { throw 'docs\MeetingCleanupOnPrem-Guide.html not found: run tools\Build-Documentation.ps1 first (it holds the CSS of the graphics).' }
+    if (-not (Test-Path $guideHtml)) { throw 'package\docs\MeetingCleanupOnPrem-Guide.html not found: run tools\Build-Documentation.ps1 first (it holds the CSS of the graphics).' }
     # Icons: the $Icons table of the documentation builder, read without running the builder.
     $ast = [System.Management.Automation.Language.Parser]::ParseFile($builder, [ref]$null, [ref]$null)
     $assign = $ast.Find({ param($n) $n -is [System.Management.Automation.Language.AssignmentStatementAst] -and $n.Left.Extent.Text -eq '$Icons' }, $true)

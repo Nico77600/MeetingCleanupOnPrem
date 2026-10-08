@@ -10,7 +10,7 @@
     process, turned into a page with the colours and the font of Windows Terminal; the pages are opened by Microsoft
     Edge headless.
 
-    Writes docs\images\console-run.png, console-progress.png, report-overview.png, report-dark.png and
+    Writes package\docs\images\console-run.png, console-progress.png, report-overview.png, report-dark.png and
     report-transfers.png. Needs Microsoft Edge.
 
 .NOTES
@@ -21,7 +21,7 @@
 #Requires -Version 7.4
 [CmdletBinding()]
 param(
-    [string]$Destination = (Join-Path $PSScriptRoot '..\docs\images'),
+    [string]$Destination = (Join-Path $PSScriptRoot '..\package\docs\images'),
     # Internal: the console of a run (Run) or of a search in progress (Progress), written to -OutFile.
     [ValidateSet('', 'Run', 'Progress')][string]$Console = '',
     [string]$OutFile,
@@ -29,11 +29,12 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$root = Split-Path $PSScriptRoot -Parent
+$repoRoot = Split-Path $PSScriptRoot -Parent
+$root = Join-Path $repoRoot 'package'
 # Paths shown in the console and the reports: those of a real installation.
 $shownRoot = 'C:\Tools\MeetingCleanupOnPrem'
 # The simulated Exchange, at the level of the script: it answers for as long as the script runs.
-. (Join-Path $root 'tests\FakeEws.ps1')
+. (Join-Path $repoRoot 'tests\FakeEws.ps1')
 
 function Initialize-DocOrganization {
     <# The module, the simulated Exchange and the fictitious organization of the images; returns the settings. #>

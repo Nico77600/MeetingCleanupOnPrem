@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/readme-banner-dark.png">
-    <img alt="Meeting Cleanup On-Prem: finds the meetings of organizers who left or stay, or every meeting of some rooms, in every calendar of Exchange Server where they are, then removes them silently, has the organizer cancel them, or transfers them to a new organizer, even when the old mailbox is gone" src="docs/images/readme-banner-light.png">
+    <source media="(prefers-color-scheme: dark)" srcset="package/docs/images/readme-banner-dark.png">
+    <img alt="Meeting Cleanup On-Prem: finds the meetings of organizers who left or stay, or every meeting of some rooms, in every calendar of Exchange Server where they are, then removes them silently, has the organizer cancel them, or transfers them to a new organizer, even when the old mailbox is gone" src="package/docs/images/readme-banner-light.png">
   </picture>
 </p>
 
@@ -11,8 +11,8 @@
   <a href="#transfer-to-a-new-organizer"><b>Transfer</b></a> &nbsp;&middot;&nbsp;
   <a href="#reports"><b>Reports</b></a> &nbsp;&middot;&nbsp;
   <a href="#quick-start"><b>Quick start</b></a> &nbsp;&middot;&nbsp;
-  <a href="docs/MeetingCleanupOnPrem-UserGuide.md"><b>User guide</b></a> &nbsp;&middot;&nbsp;
-  <a href="docs/MeetingCleanupOnPrem-Guide.md"><b>Developer guide</b></a>
+  <a href="package/docs/MeetingCleanupOnPrem-UserGuide.md"><b>User guide</b></a> &nbsp;&middot;&nbsp;
+  <a href="package/docs/MeetingCleanupOnPrem-Guide.md"><b>Developer guide</b></a>
 </p>
 
 > [!IMPORTANT]
@@ -31,15 +31,15 @@ Meetings outlive the people and the decisions behind them. A person leaves and t
 This tool does it for **Exchange Server** (2016, 2019, Subscription Edition) with one search for every case, a report first, then a clear choice: remove the copies **silently**, have the organizer **cancel** the meetings, or **transfer** them to a new organizer. A silent removal can be **restored**. It is the on-premises counterpart of [Meeting Cleanup](https://github.com/Nico77600/MeetingCleanup) for Exchange Online: the same search, actions, console and report, through EWS and Exchange PowerShell.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/images/readme-principles-dark.png">
-  <img alt="Organizers present (one address or a list), organizers deleted (found in the rooms, a list of mailboxes or every mailbox, from the address or the X500 address), one meeting, a series or a period, silent and reversible (Remove and Restore), rooms over a period (every meeting of the rooms, a series loses only its occurrences in the period), transfer to a new organizer (re-created and sent by him)" src="docs/images/readme-principles-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="package/docs/images/readme-principles-dark.png">
+  <img alt="Organizers present (one address or a list), organizers deleted (found in the rooms, a list of mailboxes or every mailbox, from the address or the X500 address), one meeting, a series or a period, silent and reversible (Remove and Restore), rooms over a period (every meeting of the rooms, a series loses only its occurrences in the period), transfer to a new organizer (re-created and sent by him)" src="package/docs/images/readme-principles-light.png">
 </picture>
 
 ## How it works
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/images/readme-how-it-works-dark.png">
-  <img alt="The search: organizers or rooms, the mailboxes where to search, the CalendarView of the period page after page, every copy by its UID (attendees, rooms, members of the groups invited), then the action after confirmation. Four actions: Remove (silent, restorable), Cancel (by the organizer, with your message), Transfer (re-created by the new organizer, one invitation), Restore (from Recoverable Items, without a message)" src="docs/images/readme-how-it-works-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="package/docs/images/readme-how-it-works-dark.png">
+  <img alt="The search: organizers or rooms, the mailboxes where to search, the CalendarView of the period page after page, every copy by its UID (attendees, rooms, members of the groups invited), then the action after confirmation. Four actions: Remove (silent, restorable), Cancel (by the organizer, with your message), Transfer (re-created by the new organizer, one invitation), Restore (from Recoverable Items, without a message)" src="package/docs/images/readme-how-it-works-light.png">
 </picture>
 
 - **Every copy, wherever the meeting is found**: one copy of a meeting holds its whole attendee list. Every internal attendee, room and member of an invited group is then asked for its own copy, by **UID** (the same in every copy). External attendees are listed, not processed.
@@ -52,7 +52,7 @@ This tool does it for **Exchange Server** (2016, 2019, Subscription Edition) wit
 
 ## The actions
 
-Measured on a lab Exchange Server 2019 ([developer guide, chapter 4](docs/MeetingCleanupOnPrem-Guide.md#4-the-actions) and appendix C):
+Measured on a lab Exchange Server 2019 ([developer guide, chapter 4](package/docs/MeetingCleanupOnPrem-Guide.md#4-the-actions) and appendix C):
 
 | Action | Organizer's meeting | Attendees and rooms | Messages |
 |---|---|---|---|
@@ -69,8 +69,8 @@ A removed copy stays restorable for the retention of deleted items (14 days by d
 `-Action Transfer -NewOrganizer <address>` gives the meetings found to another person. Exchange Server cannot change the organizer of a meeting (Exchange Online has `Invoke-ChangeMeetingOrganizer`, not Exchange Server): the tool **re-creates each meeting in the new organizer's calendar**:
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/images/readme-transfer-dark.png">
-  <img alt="Read the meeting and its occurrences to come, remove the old copies of the rooms, create and send the new meeting (one invitation), the old meeting cancelled by its organizer, the old copies removed silently, verify" src="docs/images/readme-transfer-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="package/docs/images/readme-transfer-dark.png">
+  <img alt="Read the meeting and its occurrences to come, remove the old copies of the rooms, create and send the new meeting (one invitation), the old meeting cancelled by its organizer, the old copies removed silently, verify" src="package/docs/images/readme-transfer-light.png">
 </picture>
 
 - A series is re-created **from its next occurrence**, with the same pattern and time zone; a numbered series keeps the occurrences still to come.
@@ -82,21 +82,21 @@ A removed copy stays restorable for the retention of deleted items (14 days by d
 
 <table>
   <tr>
-    <td width="50%" valign="top"><a href="docs/images/report-overview.png"><img alt="HTML report" src="docs/images/report-overview.png"></a><br><sub><b>HTML report</b> &middot; who was searched, where, every meeting and every copy with the answer of Exchange</sub></td>
-    <td width="50%" valign="top"><a href="docs/images/console-run.png"><img alt="The console of a report" src="docs/images/console-run.png"></a><br><sub><b>Console</b> &middot; the request and the connection, each step, the meetings found, the files and the next command to run</sub></td>
+    <td width="50%" valign="top"><a href="package/docs/images/report-overview.png"><img alt="HTML report" src="package/docs/images/report-overview.png"></a><br><sub><b>HTML report</b> &middot; who was searched, where, every meeting and every copy with the answer of Exchange</sub></td>
+    <td width="50%" valign="top"><a href="package/docs/images/console-run.png"><img alt="The console of a report" src="package/docs/images/console-run.png"></a><br><sub><b>Console</b> &middot; the request and the connection, each step, the meetings found, the files and the next command to run</sub></td>
   </tr>
 </table>
 
 <details>
 <summary><b>Transfers tab</b> &middot; after a transfer: from whom to whom, the new meeting, the old one and its copies</summary>
 <br>
-<a href="docs/images/report-transfers.png"><img alt="The Transfers tab of a transfer report: two meetings of an organizer still present (the old meeting cancelled by him) and one of a deleted organizer (its old copies removed), each re-created by the new organizer with the attendees and rooms invited" src="docs/images/report-transfers.png"></a>
+<a href="package/docs/images/report-transfers.png"><img alt="The Transfers tab of a transfer report: two meetings of an organizer still present (the old meeting cancelled by him) and one of a deleted organizer (its old copies removed), each re-created by the new organizer with the attendees and rooms invited" src="package/docs/images/report-transfers.png"></a>
 </details>
 
 <details>
 <summary><b>A search in progress</b> &middot; the step, the part done and the time left</summary>
 <br>
-<a href="docs/images/console-progress.png"><img alt="The console during a search of 1,861 mailboxes: step 4/6, 67 %, about 20 s left" src="docs/images/console-progress.png"></a>
+<a href="package/docs/images/console-progress.png"><img alt="The console during a search of 1,861 mailboxes: step 4/6, 67 %, about 20 s left" src="package/docs/images/console-progress.png"></a>
 </details>
 
 Each run writes `MeetingCleanupOnPrem-Meetings.csv`, `-Copies.csv`, `-Organizers.csv` (and `-Transfers.csv` after a transfer), `-Summary.json`, `-Backup.json` (written before any change) and a self-contained HTML report, in a folder of its own.
@@ -108,14 +108,14 @@ Each run writes `MeetingCleanupOnPrem-Meetings.csv`, `-Copies.csv`, `-Organizers
 | Exchange | **Exchange Server 2016, 2019 or Subscription Edition**, EWS reachable over HTTPS (validated on Exchange Server 2019). For Exchange Online: [Meeting Cleanup](https://github.com/Nico77600/MeetingCleanup) |
 | PowerShell | 7.4 or later — a portable zip is enough |
 | Windows | Windows 10 / 11 or Windows Server 2016 to 2025: an administration workstation or an Exchange server; it runs in a console or a scheduled task |
-| Service account | The role **ApplicationImpersonation**, limited by a management scope ([developer guide, chapter 5](docs/MeetingCleanupOnPrem-Guide.md#5-rights-and-connection)); `Delegate` (full access) works as well |
+| Service account | The role **ApplicationImpersonation**, limited by a management scope ([developer guide, chapter 5](package/docs/MeetingCleanupOnPrem-Guide.md#5-rights-and-connection)); `Delegate` (full access) works as well |
 | Exchange PowerShell | Recommended (remote PowerShell, opened by the tool): aliases and X500 addresses, every room and every mailbox, groups. Read-only roles of the directory |
 | *Restore* | The role **Mailbox Import Export** (`Get-RecoverableItems`, `Restore-RecoverableItems`) |
 | Network | HTTPS to the EWS URL; HTTP (Kerberos) to `/PowerShell/` of a Mailbox server |
 
 ## Quick start
 
-Download `MeetingCleanupOnPrem-<version>.zip` from the [latest release](https://github.com/Nico77600/MeetingCleanupOnPrem/releases/latest), extract it (for example in `C:\Tools`) and unblock the files (command at the top of this page).
+Download `MeetingCleanupOnPrem-<version>.zip` from the [latest release](https://github.com/Nico77600/MeetingCleanupOnPrem/releases/latest), extract it (for example in `C:\Tools`) and unblock the files (command at the top of this page). You can also copy the repository `package` folder.
 
 ```powershell
 cd C:\Tools\MeetingCleanupOnPrem-1.1.0
@@ -130,18 +130,18 @@ notepad .\config\MeetingCleanupOnPrem.config.psd1     # EWS URL, service account
 .\Invoke-MeetingCleanupOnPrem.ps1 -Action Restore -FromReport .\reports\MeetingCleanupOnPrem_Remove_20261105-093000
 ```
 
-One command per everyday question — who still organizes what, a leaver with or without mailbox, a transfer, one series, one occurrence of a series, rooms closed, the leavers of the month, undo a removal, a scheduled task: see the [user guide](docs/MeetingCleanupOnPrem-UserGuide.md).
+One command per everyday question — who still organizes what, a leaver with or without mailbox, a transfer, one series, one occurrence of a series, rooms closed, the leavers of the month, undo a removal, a scheduled task: see the [user guide](package/docs/MeetingCleanupOnPrem-UserGuide.md).
 
-The zip of each [release](https://github.com/Nico77600/MeetingCleanupOnPrem/releases) contains only the files needed to run, with both guides in HTML; `.\tools\New-MeetingCleanupOnPremPackage.ps1` builds the same package from the repository.
+The `package` folder of this repository holds exactly the files needed to run, with the guides. The zip of each [release](https://github.com/Nico77600/MeetingCleanupOnPrem/releases) contains the same run-time files with the HTML guides; `.\tools\New-MeetingCleanupOnPremPackage.ps1` builds that zip content from the repository.
 
 ## Documentation
 
 | Guide | Content |
 |---|---|
-| **[User guide](docs/MeetingCleanupOnPrem-UserGuide.md)** | For the people who run the tool: **prerequisites**, the one-time setup (service account, roles) and **everyday commands only** — which meetings this person still organizes, a person has left (mailbox kept or deleted), give the meetings to someone else, one series without a message, one occurrence of a series, rooms closed for works, the leavers of the month, undo a removal, a scheduled task, the results. |
-| **[Developer guide](docs/MeetingCleanupOnPrem-Guide.md)** | Everything else: how it works, every case, each action as measured on a lab Exchange Server (Remove, Cancel, rooms mode, Transfer, Restore), the rights and the connection (impersonation, Windows authentication, remote PowerShell, load balancer), every setting and parameter, the console, the report, the files produced, the architecture, performance and limits, tests, troubleshooting, security. |
+| **[User guide](package/docs/MeetingCleanupOnPrem-UserGuide.md)** | For the people who run the tool: **prerequisites**, the one-time setup (service account, roles) and **everyday commands only** — which meetings this person still organizes, a person has left (mailbox kept or deleted), give the meetings to someone else, one series without a message, one occurrence of a series, rooms closed for works, the leavers of the month, undo a removal, a scheduled task, the results. |
+| **[Developer guide](package/docs/MeetingCleanupOnPrem-Guide.md)** | Everything else: how it works, every case, each action as measured on a lab Exchange Server (Remove, Cancel, rooms mode, Transfer, Restore), the rights and the connection (impersonation, Windows authentication, remote PowerShell, load balancer), every setting and parameter, the console, the report, the files produced, the architecture, performance and limits, tests, troubleshooting, security. |
 
-Both guides also exist as a single HTML file with a light and a dark theme (`docs/MeetingCleanupOnPrem-UserGuide.html`, `docs/MeetingCleanupOnPrem-Guide.html`): download them and open them locally, or use the copies in the release zip.
+Both guides also exist as a single HTML file with a light and a dark theme (`package/docs/MeetingCleanupOnPrem-UserGuide.html`, `package/docs/MeetingCleanupOnPrem-Guide.html`): download them and open them locally, or use the copies in the release zip.
 
 ## Tests
 
@@ -150,7 +150,7 @@ Both guides also exist as a single HTML file with a light and a dark theme (`doc
 .\tools\Measure-MeetingCleanupOnPrem.ps1 -Meetings 600 -LatencyMs 20 -Show   # a whole search on a simulated organization
 ```
 
-The tool was also validated on a lab Exchange Server 2019 (four Mailbox servers behind a load balancer, run by a scheduled task with a service account): reports of organizers and lists, Remove from a reviewed report and Restore without any message, Cancel of single meetings and series, rooms over a period with series, transfers of series and single meetings, calendars read page after page ([developer guide, appendix C](docs/MeetingCleanupOnPrem-Guide.md#appendix-c---lab-measurements)).
+The tool was also validated on a lab Exchange Server 2019 (four Mailbox servers behind a load balancer, run by a scheduled task with a service account): reports of organizers and lists, Remove from a reviewed report and Restore without any message, Cancel of single meetings and series, rooms over a period with series, transfers of series and single meetings, calendars read page after page ([developer guide, appendix C](package/docs/MeetingCleanupOnPrem-Guide.md#appendix-c---lab-measurements)).
 
 ## License
 
