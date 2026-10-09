@@ -1,0 +1,5 @@
+{
+  "productionSourceRoot": "package\\src",
+  "requiresSqlite": false,
+  "requiresPowerShell": true
+}
