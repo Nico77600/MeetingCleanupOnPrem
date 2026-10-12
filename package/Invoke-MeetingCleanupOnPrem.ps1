@@ -26,6 +26,14 @@
     Exit codes : 0 = completed, 1 = failed, 2 = finished with warnings (a copy not removed or restored, a mailbox not read...).
     Documentation : docs\MeetingCleanupOnPrem-UserGuide.html (user guide: prerequisites, everyday commands) and
                     docs\MeetingCleanupOnPrem-Guide.html (developer guide); sources: docs\*.md
+
+    Disclaimer:
+    This Script is a Personal project.
+    It's provided "AS-IS". It's not an official Microsoft product so no support can be expected from Microsoft.
+
+    As any scripts you must read carefully the documentation and test it first in a Test environment before any run in Production.
+
+    Removing, cancelling or transferring meetings changes real calendars: always start with a report, and test it in your environment before production use.
 #>
 #Requires -Version 7.4
 [CmdletBinding()]

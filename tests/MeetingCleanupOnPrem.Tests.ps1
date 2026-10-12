@@ -25,6 +25,28 @@ BeforeAll {
     }
 }
 
+Describe 'Runtime disclaimer' -Tag 'Disclaimer' {
+    It 'keeps the runtime readme and public script help identical to the root disclaimer' {
+        $pattern = '(?ms)^## Disclaimer\n\n(?<Text>.*?)(?=^## |\z)'
+        $readme = [IO.File]::ReadAllText((Join-Path $script:RepoRoot 'README.md')).Replace("`r`n", "`n")
+        $sections = [regex]::Matches($readme, $pattern)
+        $sections.Count | Should -Be 1
+        $canonical = $sections[0].Groups['Text'].Value.TrimEnd([char[]]"`n")
+        $canonical | Should -Not -BeNullOrEmpty
+
+        $runtimeReadme = [IO.File]::ReadAllText((Join-Path $script:Root 'README.md')).Replace("`r`n", "`n")
+        $runtimeSections = [regex]::Matches($runtimeReadme, $pattern)
+        $runtimeSections.Count | Should -Be 1
+        $runtimeSections[0].Groups['Text'].Value.TrimEnd([char[]]"`n") | Should -BeExactly $canonical
+
+        $entry = Join-Path $script:Root 'Invoke-MeetingCleanupOnPrem.ps1'
+        $notes = ((Get-Help $entry -Full).alertSet.alert.Text -join "`n").Replace("`r`n", "`n")
+        $disclaimers = [regex]::Matches($notes, '(?ms)^Disclaimer:\n(?<Text>.*?)(?=\n\nRequires -Version|\z)')
+        $disclaimers.Count | Should -Be 1
+        $disclaimers[0].Groups['Text'].Value.TrimEnd([char[]]"`n") | Should -BeExactly $canonical
+    }
+}
+
 Describe 'Configuration and request' {
     It 'loads the delivered on-prem configuration without contacting Exchange' {
         $settings = Import-McoConfiguration
