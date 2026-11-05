@@ -413,7 +413,7 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--cp-bor
 <aside><div class="brand"><div class="brand-logo">$(Get-Icon 'calendar')</div><div><div class="brand-name">$(& $enc $meta.title)</div><div class="brand-sub">$(& $enc $meta.subtitle) · v$($meta.version)</div></div></div>
 <nav aria-label="Contents">$($nav.ToString())</nav></aside>
 <main>$hero$($body.ToString())
-<footer>$(& $enc $meta.title) $($meta.version) · $(& $enc $meta.author) · generated on $(Get-Date -Format 'yyyy-MM-dd HH:mm') from $(& $enc (Split-Path $Source -Leaf))</footer></main>
+<footer>$(& $enc $meta.title) $($meta.version) · $(& $enc $meta.author) · updated $(& $enc $meta.updated) from $(& $enc (Split-Path $Source -Leaf))</footer></main>
 <button type="button" id="to-top" title="Back to top">$(Get-Icon 'up' 'icon-sm')</button>
 <dialog id="zoom"><img alt=""></dialog>
 <script>
@@ -455,5 +455,7 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--cp-bor
 </script>
 </body></html>
 "@
+# One line ending in the whole file (CRLF): the HTML guides are hashed by the signed manifest.
+$page = $page -replace "`r?`n", "`r`n"
 [IO.File]::WriteAllText($Destination, $page, [Text.UTF8Encoding]::new($false))
 Write-Host "Written: $Destination ($([Math]::Round((Get-Item $Destination).Length / 1KB)) KB)"

@@ -209,9 +209,31 @@ Describe 'Integrity at the entry points' {
         $plain.Text | Should -Match 'PackageIntegrity.psd1 is missing\. Use the complete release ZIP .*releases/latest.*-DevelopmentMode'
         $development = Invoke-Child ("& '$(Join-Path $script:Fixture 'Invoke-MeetingCleanupOnPrem.ps1')' -ConfigPath '$($script:NoConfig)' -DevelopmentMode 3>&1 | Out-String")
         $development.Text | Should -Match 'DevelopmentMode: no package manifest'
+        # The run goes on to the configuration: it is the missing configuration file that stops it.
+        $development.Text | Should -Match 'no-such-config'
+        $development.Text | Should -Not -Match 'positional|Package integrity: verifier|unexpected stable file'
         $development.Text | Should -Not -Match 'PackageIntegrity.psd1 is missing'
         # One warning per process: the module does not repeat it at import.
         ([regex]::Matches($development.Text, 'no package manifest|no PackageIntegrity\.psd1')).Count | Should -Be 1
+    }
+}
+
+Describe 'Guides' {
+    It 'regenerates the HTML guides from their Markdown sources without a difference' {
+        $builder = Join-Path $script:RepoRoot 'tools\Build-Documentation.ps1'
+        foreach ($name in 'MeetingCleanupOnPrem-UserGuide', 'MeetingCleanupOnPrem-Guide') {
+            $target = Join-Path $TestDrive "$name.html"
+            & $builder -Source (Join-Path $script:Source "docs\$name.md") -Destination $target | Out-Null
+            (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash | Should -Be (Get-FileHash -LiteralPath (Join-Path $script:Source "docs\$name.html") -Algorithm SHA256).Hash -Because $name
+        }
+    }
+    It 'pins the line endings of every hashed file' {
+        $attributes = Get-Content -LiteralPath (Join-Path $script:RepoRoot '.gitattributes') -Raw
+        foreach ($pattern in 'package/Invoke-MeetingCleanupOnPrem.ps1', 'package/MeetingCleanupOnPrem.psm1', 'package/MeetingCleanupOnPrem.psd1', 'package/src/*.ps1', 'package/PackageIntegrity.psd1',
+            'package/src/*.cs', 'package/templates/Report.template.html', 'package/docs/MeetingCleanupOnPrem-Guide.html', 'package/docs/MeetingCleanupOnPrem-UserGuide.html',
+            'package/README.md', 'package/LICENSE', 'package/THIRD-PARTY-NOTICES.md', 'CHANGELOG.md') {
+            $attributes | Should -Match ('(?m)^' + [regex]::Escape($pattern) + ' -text') -Because $pattern
+        }
     }
 }
 
@@ -239,6 +261,44 @@ Describe 'Owner signatures' -Tag 'RealSignature' {
             $signature.SignerCertificate.Thumbprint | Should -BeExactly $script:Signer
             $signature.TimeStamperCertificate | Should -Not -BeNullOrEmpty
         }
+    }
+    It 'starts the entry script of the sealed package up to the configuration, and refuses a copy with one changed template byte' -Skip:(-not $env:MCO_RELEASE_PACKAGE) {
+        $run = Invoke-Child ("& '$(Join-Path $script:Release 'Invoke-MeetingCleanupOnPrem.ps1')' -ConfigPath '$($script:NoConfig)'; 'EXIT=' + `$LASTEXITCODE")
+        $run.Text | Should -Match 'no-such-config'
+        $run.Text | Should -Not -Match 'Package integrity|positional'
+        $copy = Join-Path $TestDrive 'real-entry'
+        Copy-Item -LiteralPath $script:Release -Destination $copy -Recurse
+        [IO.File]::AppendAllBytes((Join-Path $copy 'templates\Report.template.html'), [byte[]](32))
+        $changed = Invoke-Child ("& '$(Join-Path $copy 'Invoke-MeetingCleanupOnPrem.ps1')' -ConfigPath '$($script:NoConfig)'; 'EXIT=' + `$LASTEXITCODE")
+        $changed.Text | Should -Match 'SHA256 mismatch: templates\\Report.template.html'
+    }
+    It 'rejects a cryptographically valid manifest with its timestamp removed' -Skip:(-not $env:MCO_RELEASE_PACKAGE) {
+        Add-Type -AssemblyName System.Security.Cryptography.Pkcs
+        $fixture = Join-Path $TestDrive 'real-timestamp'
+        Copy-Item -LiteralPath $script:Release -Destination $fixture -Recurse
+        $path = Join-Path $fixture 'PackageIntegrity.psd1'
+        $encoding = [Text.UTF8Encoding]::new($false, $true)
+        $text = $encoding.GetString([IO.File]::ReadAllBytes($path))
+        $match = [regex]::Match($text, '(?ms)^# SIG # Begin signature block\r?\n(?<Data>.*?)^# SIG # End signature block\r?\n?\z')
+        $match.Success | Should -BeTrue
+        $cms = [Security.Cryptography.Pkcs.SignedCms]::new()
+        $cms.Decode([Convert]::FromBase64String((($match.Groups['Data'].Value -replace '(?m)^#\s?', '') -replace '\s', '')))
+        foreach ($attribute in @($cms.SignerInfos[0].UnsignedAttributes)) {
+            foreach ($value in $attribute.Values) {
+                $cms.SignerInfos[0].RemoveUnsignedAttribute([Security.Cryptography.AsnEncodedData]::new($attribute.Oid, $value.RawData))
+            }
+        }
+        $base64 = [Convert]::ToBase64String($cms.Encode())
+        $lines = for ($i = 0; $i -lt $base64.Length; $i += 64) { '# ' + $base64.Substring($i, [Math]::Min(64, $base64.Length - $i)) }
+        [IO.File]::WriteAllBytes($path, $encoding.GetBytes($text.Substring(0, $match.Index) +
+            "# SIG # Begin signature block`r`n" + ($lines -join "`r`n") + "`r`n# SIG # End signature block`r`n"))
+        [string](Get-AuthenticodeSignature -LiteralPath $path).Status | Should -Be 'Valid'
+        (Get-AuthenticodeSignature -LiteralPath $path).TimeStamperCertificate | Should -BeNullOrEmpty
+        { & (Join-Path $fixture 'src\Test-PackageIntegrity.ps1') -Root $fixture -Distribution } | Should -Throw -ExpectedMessage '*expected trusted, timestamped owner signature*'
+    }
+    It 'accepts the committed package with the real verifier' -Skip:(-not (Test-Path -LiteralPath (Join-Path (Split-Path $PSScriptRoot -Parent) 'package\PackageIntegrity.psd1'))) {
+        $result = & (Join-Path $script:Source 'src\Test-PackageIntegrity.ps1') -Root $script:Source
+        $result.Status | Should -Be 'Valid (files only)'
     }
     It 'accepts the release package with the real verifier' -Skip:(-not $env:MCO_RELEASE_PACKAGE) {
         $result = & (Join-Path $script:Release 'src\Test-PackageIntegrity.ps1') -Root $script:Release -Distribution

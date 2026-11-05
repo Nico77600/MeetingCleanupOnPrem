@@ -60,6 +60,8 @@ The user guide has every step with what you should see and what to do if not: op
 | Invoke-MeetingCleanupOnPrem.ps1 | Entry script for the command line. |
 | MeetingCleanupOnPrem.psd1 | Module manifest. |
 | MeetingCleanupOnPrem.psm1 | Module loader. |
+| PackageIntegrity.psd1 | Signed list of the files of this folder. Do not edit. |
+| README.md | This file. |
 | config | Delivered configuration template. |
 | docs | The user guide and the developer guide (HTML). |
 | src | PowerShell source files and native helper source. |

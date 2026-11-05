@@ -7,6 +7,6 @@
     "tests/PackageIntegrity.Tests.ps1"
   ],
   "packageBuilder": "tools/New-MeetingCleanupOnPremPackage.ps1",
-  "packageArguments": [ "-Unsigned" ],
+  "packageSwitches": [ "Unsigned" ],
   "packageEntry": "Invoke-MeetingCleanupOnPrem.ps1"
 }

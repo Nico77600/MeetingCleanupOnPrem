@@ -29,12 +29,12 @@ updated: 2026-11-05
 > The two values must be identical. After extracting, check the signature of the entry script:
 >
 > ```powershell
-> Get-AuthenticodeSignature .\Invoke-MeetingCleanupOnPrem.ps1 | Format-List Status, SignerCertificate
+> Get-AuthenticodeSignature C:\Tools\MeetingCleanupOnPrem-1.1.1\Invoke-MeetingCleanupOnPrem.ps1 | Format-List Status, SignerCertificate
 > ```
 >
 > **You should see:** `Status : Valid` and a signer named *Nicolas Fabert*. On every run the tool also checks, before anything loads, the signature of its PowerShell files and the SHA256 of each file against the signed list `PackageIntegrity.psd1`.
 >
-> **If the tool stops with a *Package integrity* message:** a file of the package was changed, removed, added or is not signed (*SHA256 mismatch*, *missing inventory path*, *unexpected stable file*, *expected trusted, timestamped owner signature*, *PackageIntegrity.psd1 is missing*). Nothing was run. Download the ZIP again from the Releases page, extract it into a new folder and unblock it. The only file you edit is `config\MeetingCleanupOnPrem.config.psd1`. Do not use `-DevelopmentMode` on a release package: it is for developers.
+> **If the tool stops with a *Package integrity* message:** a file of the package was changed, removed, added or is not signed (*SHA256 mismatch*, *missing inventory path*, *unexpected stable file*, *expected trusted, timestamped owner signature*, *PackageIntegrity.psd1 is missing*). Nothing was run. Download the ZIP again from the Releases page, extract it into a new folder and unblock it. The only file you edit is `config\MeetingCleanupOnPrem.config.psd1`. Keep your own files (credential file, lists of addresses) in a folder outside the tool folder, for example `C:\Tools\MeetingCleanupOnPrem-data`: inside the tool folder only `config\MeetingCleanupOnPrem.config.psd1`, `reports\` and `logs\` may change. Do not use `-DevelopmentMode` on a release package: it is for developers.
 ```cards
 checklist | Prerequisites | Chapter 1: PowerShell, the service account and its rights, then the one-time setup.
 terminal | Everyday use | Chapter 2: one command per question, in the console or in a scheduled task.
@@ -54,13 +54,18 @@ file | Results | Chapter 4: where the report is written, exit codes, the usual m
 | Exchange PowerShell | Recommended: the tool connects to it alone. It resolves aliases and X500 addresses, lists every room and every mailbox, expands the groups and runs *Restore*. Rights: [Rights for the directory](MeetingCleanupOnPrem-Guide.md#rights-for-the-directory), [Rights for Restore](MeetingCleanupOnPrem-Guide.md#rights-for-restore). |
 | Network | HTTPS to the EWS URL (`https://mail.contoso.com/EWS/Exchange.asmx`); HTTP to `/PowerShell/` of a Mailbox server for remote PowerShell. |
 
-Four terms you will meet:
+Terms you will meet:
 
 | Term | In plain words |
 |---|---|
 | **EWS** (Exchange Web Services) | The web address of your Exchange server that the tool uses to read and change calendars. |
 | **Impersonation** (ApplicationImpersonation) | An Exchange role that lets the service account open other people's calendars as if it were them. |
 | **RPS** (remote PowerShell) | The Exchange command line, opened by the tool from your computer. It looks up addresses, rooms and groups. |
+| **Management scope** | An Exchange filter that limits a role to some mailboxes, here user, room and shared mailboxes. |
+| **X500 address** | The old internal address of a mailbox, kept in the meetings after the mailbox is deleted. |
+| **Recoverable Items** | The hidden folder of a mailbox where deleted items stay for the retention time (14 days by default); *Restore* reads it. |
+| **FQDN** | The full name of a server, such as `mail.contoso.com`. |
+| **SHA256** | A fingerprint of a file: two files with the same SHA256 are identical. |
 | **Kerberos / NTLM** | Two ways Windows proves who you are to a server. The default, `Negotiate`, picks one for you: leave it, and read step 6 if you get an HTTP 401 error. |
 
 > [!WARNING]
@@ -172,21 +177,22 @@ Leave the other settings as delivered. `Connection.WindowsPackage` is `Negotiate
 
 ![The console of a report: the request, the connection, the steps and the files written](images/console-run.png)
 
-**You should see:** the title card, then in step 1 a line *Exchange PowerShell: ...* and a line *EWS https://mail.contoso.com/EWS/Exchange.asmx ... Impersonation (svc-meetingcleanup@contoso.com signs in)*, then the steps of the search, and at the end the folder written under `reports\` with the next command to run. Open `MeetingCleanupOnPrem.html` in that folder.
+**You should see:** the first lines can take up to a minute (the tool compiles its helper and opens remote PowerShell). Then the title card, then in step 1 a line *Exchange PowerShell: ...* and a line *EWS https://mail.contoso.com/EWS/Exchange.asmx ... Impersonation (svc-meetingcleanup@contoso.com signs in)*, then the steps of the search, and at the end the folder written under `reports\` with the next command to run. Open `MeetingCleanupOnPrem.html` in that folder.
 
 **If not:** read the red message and find it in the table of chapter 4. The usual ones: *HTTP 401* (password, or step 6: `NTLM`), *ErrorImpersonateUserDenied* (step 4, wait a few minutes), *Exchange RPS connection failed* (`ManagementShell.ServerFqdn`).
 
 #### Step 8 · Scheduled task (optional)
 
-**Do:** to run the tool without typing a password, save the password of the service account in a credential file. Run this as the account that will RUN the task: the file can only be read by that account, on this computer.
+**Do:** to run the tool without typing a password, save the password of the service account in a credential file. Keep it in a data folder **outside** the tool folder (the tool refuses a tool folder that holds an unknown file). Run this as the account that will RUN the task: the file can only be read by that account, on this computer.
 
 ```powershell
-Get-Credential CONTOSO\svc-meetingcleanup | Export-Clixml C:\Tools\MeetingCleanupOnPrem-1.1.1\svc.cred.xml
+New-Item -ItemType Directory -Force C:\Tools\MeetingCleanupOnPrem-data | Out-Null
+Get-Credential CONTOSO\svc-meetingcleanup | Export-Clixml C:\Tools\MeetingCleanupOnPrem-data\svc.cred.xml
 ```
 
-Then, in the configuration: `Connection.CredentialFile = 'C:\Tools\MeetingCleanupOnPrem-1.1.1\svc.cred.xml'`.
+Then, in the configuration: `Connection.CredentialFile = 'C:\Tools\MeetingCleanupOnPrem-data\svc.cred.xml'`.
 
-**You should see:** the file `svc.cred.xml` in the folder, and the password is not readable in it.
+**You should see:** the file `svc.cred.xml` in `C:\Tools\MeetingCleanupOnPrem-data`, and the password is not readable in it.
 
 **If not:** you closed the password window: run the command again.
 <!-- icon: terminal -->
@@ -227,7 +233,7 @@ Each meeting is cancelled by its organizer, with your message: the attendees rec
 .\Invoke-MeetingCleanupOnPrem.ps1 -FromReport .\reports\MeetingCleanupOnPrem_Report_20261006-101500 -Action Remove
 ```
 
-Use the address of the person, or its **X500 address** when the account is gone from the directory (`/o=Contoso/ou=Exchange Administrative Group (...)/cn=Recipients/cn=...`): it is the organizer address the meetings still carry. A deleted organizer cannot cancel: the copies are removed silently. `AllMailboxes` needs Exchange PowerShell; with a list of the team instead: `-SearchIn Mailboxes -MailboxFile .\team.txt`.
+Use the address of the person, or its **X500 address** when the account is gone from the directory (`/o=Contoso/ou=Exchange Administrative Group (...)/cn=Recipients/cn=...`): it is the organizer address the meetings still carry. A deleted organizer cannot cancel: the copies are removed silently. `AllMailboxes` needs Exchange PowerShell; with a list of the team instead: `-SearchIn Mailboxes -MailboxFile C:\Tools\MeetingCleanupOnPrem-data\team.txt`.
 
 ### 2.4 Give the meetings of a person to someone else
 
@@ -267,10 +273,10 @@ Every meeting of these rooms in the period, whoever organized it. A series loses
 ### 2.8 The leavers of the month
 
 ```powershell
-.\Invoke-MeetingCleanupOnPrem.ps1 -OrganizerFile .\leavers-2026-10.txt -SearchIn Organizer, Rooms
+.\Invoke-MeetingCleanupOnPrem.ps1 -OrganizerFile C:\Tools\MeetingCleanupOnPrem-data\leavers-2026-10.txt -SearchIn Organizer, Rooms
 ```
 
-A text file with one address per line, or a CSV file (`PrimarySmtpAddress`, `UserPrincipalName`, `Address`...): each mailbox is read once for all of them, and the report has an *Organizers* tab.
+Put the list in your data folder (`C:\Tools\MeetingCleanupOnPrem-data`), not in the tool folder. A text file with one address per line, or a CSV file (`PrimarySmtpAddress`, `UserPrincipalName`, `Address`...): each mailbox is read once for all of them, and the report has an *Organizers* tab.
 
 ### 2.9 Undo a Remove
 
@@ -283,7 +289,7 @@ The copies come back from Recoverable Items, as they were, **without a message**
 ### 2.10 In a scheduled task
 
 ```powershell
-pwsh -NoProfile -File C:\Tools\MeetingCleanupOnPrem-1.1.1\Invoke-MeetingCleanupOnPrem.ps1 -OrganizerFile C:\Tools\leavers.txt -Action Cancel -Comment 'This meeting is cancelled.' -Force
+pwsh -NoProfile -File C:\Tools\MeetingCleanupOnPrem-1.1.1\Invoke-MeetingCleanupOnPrem.ps1 -OrganizerFile C:\Tools\MeetingCleanupOnPrem-data\leavers.txt -Action Cancel -Comment 'This meeting is cancelled.' -Force
 ```
 
 `-Force` skips the confirmation (there is no one to type *YES*). The service account signs in from `Connection.CredentialFile` (step 8 of 1.1). The exit code says how it went (chapter 4); the output and the log of the day keep every line.
@@ -294,14 +300,14 @@ pwsh -NoProfile -File C:\Tools\MeetingCleanupOnPrem-1.1.1\Invoke-MeetingCleanupO
 | Parameter | Values | Example |
 |---|---|---|
 | `-Organizer` | One or more addresses (any alias), or the X500 address of a deleted mailbox | `-Organizer megan.bowen@contoso.com` |
-| `-OrganizerFile` | A list of organizers: text (one per line) or CSV | `-OrganizerFile .\leavers.txt` |
+| `-OrganizerFile` | A list of organizers: text (one per line) or CSV | `-OrganizerFile C:\Tools\MeetingCleanupOnPrem-data\leavers.txt` |
 | `-Room` · `-RoomFile` | Rooms mode: every meeting of these rooms, whatever its organizer | `-Room room-paris-01@contoso.com` |
 | `-Start` · `-End` | The period (an end date without a time is included). Default: the coming year | `-Start 2026-11-01 -End 2026-12-31` |
 | `-Subject` | The subject contains this text (`*` and `?` allowed) | `-Subject 'Weekly*'` |
 | `-SeriesScope` | `Whole` (default): a series is acted on whole. `Occurrences`: only its occurrences in the period (a period of one day = one occurrence) | `-SeriesScope Occurrences` |
 | `-MeetingId` | Only these meetings (column *MeetingId* of a report) | `-MeetingId 040000008200E0...` |
 | `-SearchIn` | Where to search (below). Default: `Organizer`, `Rooms` | `-SearchIn Rooms, AllMailboxes` |
-| `-Mailbox` · `-MailboxFile` | The mailboxes of `-SearchIn Mailboxes` | `-MailboxFile .\team.txt` |
+| `-Mailbox` · `-MailboxFile` | The mailboxes of `-SearchIn Mailboxes` | `-MailboxFile C:\Tools\MeetingCleanupOnPrem-data\team.txt` |
 | `-FromReport` | Act on exactly the meetings of a reviewed report | `-FromReport .\reports\MeetingCleanupOnPrem_Report_...` |
 | `-Action` | `Report` (default), `Remove`, `Cancel`, `Transfer`, `Restore` | `-Action Cancel` |
 | `-Comment` | The message of a cancellation (or of the old organizer in a transfer) | `-Comment 'This meeting is cancelled.'` |
@@ -353,7 +359,8 @@ Each run writes a new folder under `reports\`, named after the action and the ti
 | *Exchange RPS connection failed* | `ManagementShell.ServerFqdn` / `ConnectionUri`, Kerberos to `http://<server>/PowerShell/`, or `RemotePowerShellEnabled` of the account. |
 | *Get-RecoverableItems is not available* | The role Mailbox Import Export is missing, or not applied yet (open a new session). |
 | *more than 500 items at ..., raise Connection.PageSize* | A calendar holds more items starting at the same time than a page: raise `Connection.PageSize` (up to 1,000). |
-| *Package integrity: ...* | A file of the package was changed, removed, added or is not signed. Download the ZIP again from the Releases page and extract it into a new folder (box *Check the download*). |
+| *Package integrity: unexpected stable file: <name>* | A file that is not part of the package is in the tool folder, for example your own list of addresses, a credential file or a copy of the configuration. Move it to your data folder (`C:\Tools\MeetingCleanupOnPrem-data`) and use its full path in the command or the configuration. |
+| *Package integrity: SHA256 mismatch · missing inventory path · expected trusted, timestamped owner signature · PackageIntegrity.psd1 is missing* | A file of the package was changed, removed or is not signed. Download the ZIP again from the Releases page and extract it into a new folder (box *Check the download*). |
 | *Confirmation needed: run interactively, or add -Force* | An action without a console (scheduled task): add `-Force`. |
 | *Series by occurrences: give the period of the action* | `-SeriesScope Occurrences` (or `Search.SeriesScope`) with *Remove* or *Cancel*: give `-Start` and `-End`. |
 

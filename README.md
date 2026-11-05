@@ -156,7 +156,7 @@ The tool was also validated on a lab Exchange Server 2019 (four Mailbox servers 
 
 ## For developers
 
-The `package` folder of this repository holds the run-time files and the guide sources. `git clone` the repository and run the tests above; the developer guide (chapters 6 and 15) describes the release ZIP build and its signing.
+The `package` folder of this repository holds the run-time files and the guide sources. `git clone` the repository and run the tests above; the developer guide (chapter 15, "Package integrity and signing procedure") describes the release ZIP build and its signing.
 
 ## License
 

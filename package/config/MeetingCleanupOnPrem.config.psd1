@@ -25,7 +25,7 @@
         Authentication       = 'Windows'         # Windows | Basic (where the EWS virtual directory still accepts it)
         WindowsPackage       = 'Negotiate'       # Negotiate | NTLM (when Kerberos to the name of the URL fails) | Kerberos
         CredentialUser       = ''                # an account whose password is asked at each run (empty: the account that runs the tool)
-        CredentialFile       = ''                # scheduled task: Get-Credential | Export-Clixml <file>, as the account of the task
+        CredentialFile       = ''                # scheduled task: Get-Credential | Export-Clixml <file>, as the account of the task; keep the file outside the tool folder (for example C:\Tools\MeetingCleanupOnPrem-data\svc.cred.xml) and give an absolute path
         RequestServerVersion = 'Exchange2016'    # Exchange2013_SP1 | Exchange2016 | Exchange2019
         MaxRetries           = 3                 # a request Exchange did not process (busy, unavailable) is sent again
         TimeoutSeconds       = 120               # timeout of one request

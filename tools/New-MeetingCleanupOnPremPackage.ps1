@@ -7,8 +7,9 @@
         Invoke-MeetingCleanupOnPrem.ps1, MeetingCleanupOnPrem.psd1, MeetingCleanupOnPrem.psm1, src\, config\,
         templates\, docs\MeetingCleanupOnPrem-UserGuide.html, docs\MeetingCleanupOnPrem-Guide.html, README.md,
         CHANGELOG.md, LICENSE, THIRD-PARTY-NOTICES.md, PackageIntegrity.psd1
-    The HTML guides are rebuilt first from their Markdown source (tools\Build-Documentation.ps1): they are
-    self-contained (images inline), so the Markdown sources and the images are not copied.
+    The HTML guides are the committed files of package\docs\ (built from their Markdown source with
+    tools\Build-Documentation.ps1, which is run by hand or with -RebuildDocs): they are self-contained (images inline),
+    so the Markdown sources and the images are not copied.
     It never copies reports\, logs\, artifacts\, lab\, tests\ (with the simulated Exchange) or tools\.
 
     Build (default): copies the files into a new folder and refuses to continue unless the PowerShell files of
@@ -30,6 +31,10 @@
 .PARAMETER Force
     Replace the destination folder (and its zip) if it already contains a package. A folder that contains reports\
     or logs\ (a package that has been run) is never replaced.
+
+.PARAMETER RebuildDocs
+    Build only: runs tools\Build-Documentation.ps1 first. Refused with -Unsigned, because the committed
+    PackageIntegrity.psd1 lists the committed HTML guides. After a rebuild, the manifest must be regenerated.
 
 .PARAMETER Unsigned
     Continuous integration: builds without the owner signature requirement.
@@ -54,6 +59,7 @@ param(
     [Parameter(ParameterSetName = 'Build')][string]$Destination,
     [Parameter(ParameterSetName = 'Build')][switch]$Force,
     [Parameter(ParameterSetName = 'Build')][switch]$Unsigned,
+    [Parameter(ParameterSetName = 'Build')][switch]$RebuildDocs,
     [Parameter(ParameterSetName = 'Manifest', Mandatory)][string]$Manifest,
     [Parameter(ParameterSetName = 'Seal', Mandatory)][string]$Seal
 )
@@ -130,6 +136,13 @@ if ($PSCmdlet.ParameterSetName -eq 'Seal') {
             throw "The packaged file differs from the repository file: $relative"
         }
     }
+    $changelog = Join-Path $repoRoot 'CHANGELOG.md'
+    if ((Get-FileHash -LiteralPath $changelog -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath (Join-Path $Seal 'CHANGELOG.md') -Algorithm SHA256).Hash) {
+        throw 'The packaged CHANGELOG.md differs from the repository CHANGELOG.md.'
+    }
+    foreach ($used in 'data', 'reports', 'logs', 'bin') {
+        if (Test-Path -LiteralPath (Join-Path $Seal $used)) { throw "The built folder contains a $used folder (a package that has been run); it is not sealed: $Seal" }
+    }
     $zip = "$Seal.zip"
     if (Test-Path -LiteralPath $zip) { throw "The ZIP already exists: $zip" }
     Compress-Archive -LiteralPath $Seal -DestinationPath $zip -CompressionLevel Optimal
@@ -163,8 +176,11 @@ if (Test-Path -LiteralPath $zip) {
 }
 if (-not $Unsigned) { foreach ($relative in $signedScripts) { Assert-OwnerSigned (Join-Path $root $relative) } }
 
-# ---- HTML guides, rebuilt from the Markdown sources ------------------------------------------------
-& (Join-Path $PSScriptRoot 'Build-Documentation.ps1') | Out-Null
+# ---- HTML guides: the committed files, rebuilt only on request ----------------------------------------
+if ($RebuildDocs) {
+    if ($Unsigned) { throw '-RebuildDocs cannot be combined with -Unsigned: the committed manifest lists the committed HTML guides.' }
+    & (Join-Path $PSScriptRoot 'Build-Documentation.ps1') | Out-Null
+}
 
 # ---- Files needed at run time -------------------------------------------------------------------
 $files = [Collections.Generic.List[string]]::new()

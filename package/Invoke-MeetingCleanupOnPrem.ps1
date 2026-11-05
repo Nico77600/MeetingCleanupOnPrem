@@ -118,7 +118,8 @@ try {
         # The module does not repeat this warning in the same process.
         [AppDomain]::CurrentDomain.SetData('MeetingCleanupOnPrem.UnverifiedTreeWarned', $true)
     }
-    Import-Module (Join-Path $PSScriptRoot 'MeetingCleanupOnPrem.psd1') -Force    $loaded = $true
+    Import-Module (Join-Path $PSScriptRoot 'MeetingCleanupOnPrem.psd1') -Force
+    $loaded = $true
     $settings = Import-McoConfiguration -Path $ConfigPath -Root $PSScriptRoot
     foreach ($pair in @(
         @('EwsUrl', $EwsUrl), @('Mailbox', $EwsMailbox), @('Authentication', $Authentication), @('AccessMode', $AccessMode), @('CredentialUser', $CredentialUser),

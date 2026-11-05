@@ -254,7 +254,7 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--cp-bor
 </tr>
 <tr>
 <td><strong>A period</strong>, organizer deleted</td>
-<td><code class="long">-Organizer &lt;old address or X500&gt; -SearchIn Rooms</code> then, for the meetings without room, <code>-SearchIn Mailboxes -MailboxFile .\team.txt</code> or <code>-SearchIn AllMailboxes</code></td>
+<td><code class="long">-Organizer &lt;old address or X500&gt; -SearchIn Rooms</code> then, for the meetings without room, <code class="long">-SearchIn Mailboxes -MailboxFile C:\Tools\MeetingCleanupOnPrem-data\team.txt</code> or <code>-SearchIn AllMailboxes</code></td>
 </tr>
 <tr>
 <td><strong>A meeting chosen in a report</strong></td>
@@ -262,7 +262,7 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--cp-bor
 </tr>
 <tr>
 <td><strong>Several organizers</strong> (leavers of the month, a team)</td>
-<td><code>-OrganizerFile .\leavers.txt</code> (or <code>-Organizer a@contoso.com, b@contoso.com</code>) with any of the cases above</td>
+<td><code class="long">-OrganizerFile C:\Tools\MeetingCleanupOnPrem-data\leavers.txt</code> (or <code>-Organizer a@contoso.com, b@contoso.com</code>) with any of the cases above</td>
 </tr>
 <tr>
 <td><strong>Undo a Remove</strong></td>
@@ -538,7 +538,7 @@ Add-RoleGroupMember 'View-Only Organization Management' -Member svc-meetingclean
 <p>Copy the folder, then unblock the files downloaded from the Internet:</p>
 <div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code>Get-ChildItem 'C:\Tools\MeetingCleanupOnPrem-1.1.1' -Recurse -File -Force | Unblock-File
 </code></pre></div>
-<p>Every run compiles its helper (<code>src\MeetingCleanupOnPrem.Native.cs</code>) in memory: about 10 seconds on a workstation, more on a busy Exchange server. Nothing is written to disk.</p>
+<p>Every run compiles its helper (<code>src\MeetingCleanupOnPrem.Native.cs</code>) in memory: about 10 seconds on a workstation, up to a minute on a busy Exchange server. Nothing is written to disk.</p>
 </div></section><section class="section" id="configuration"><div class="section-head"><div class="section-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg></div><div><div class="section-eyebrow">Chapter 7</div><h2>Configuration</h2></div></div><div class="section-body">
 <p><code>config\MeetingCleanupOnPrem.config.psd1</code> is a PowerShell data file. Every value is checked at start and all the problems are listed at once; the parameters of the command line override it for one run.</p>
 <div class="table-wrap"><table>
@@ -1082,16 +1082,12 @@ Add-RoleGroupMember 'View-Only Organization Management' -Member svc-meetingclean
 <td>166 EWS calls (53 CalendarView, 113 GetItem); 12 s; report 1.7 s</td>
 </tr>
 <tr>
-<td>The same, version 0.3.0 (one CalendarView per meeting and attendee, one GetItem per item)</td>
-<td>8,424 EWS calls, 405 s; report 7.1 s</td>
-</tr>
-<tr>
 <td>200 meetings, 20 ms per EWS answer</td>
-<td>8.5 s (0.3.0: 152 s)</td>
+<td>8.5 s</td>
 </tr>
 <tr>
 <td>Lab Exchange 2019, report of one organizer (4 meetings, 16 copies), including remote PowerShell</td>
-<td>63 s, of which about 50 s to open remote PowerShell and EWS (0.3.0: 119 s)</td>
+<td>63 s, of which about 50 s to open remote PowerShell and EWS</td>
 </tr>
 <tr>
 <td>Lab, a room of 32 items read in pages of 10</td>
@@ -1099,7 +1095,7 @@ Add-RoleGroupMember 'View-Only Organization Management' -Member svc-meetingclean
 </tr>
 <tr>
 <td>Module loaded</td>
-<td>About 10 s on a workstation: the helper is compiled in memory at each run (longer on a busy server)</td>
+<td>About 10 s on a workstation, measured; up to a minute on a busy Exchange server (the helper is compiled in memory at each run)</td>
 </tr>
 </tbody>
 </table></div>
@@ -1116,7 +1112,7 @@ Add-RoleGroupMember 'View-Only Organization Management' -Member svc-meetingclean
 <div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code>.\Run-Tests.ps1      # Pester 6.1+, a simulated Exchange Server, no network
 </code></pre></div>
 <p><code>tests\FakeEws.ps1</code> is a simulated Exchange Server in memory: calendars with the same UID in every copy, room copies with the organizer's name as subject, series with their occurrences, CalendarView sorted by start and cut at <code>MaxEntriesReturned</code> (<code>IncludesLastItemInRange</code>), GetItem of one or many items (a series master by its occurrence), DeleteItem to Recoverable Items, cancellation received by every copy (of that occurrence only for an occurrence), creation of a meeting sent to its attendees and rooms, Recoverable Items read by offset and <code>MoveItem</code>, a mailbox that does not exist or answers with an error, throttling (<code>ErrorServerBusy</code>). <code>Install-FakeEws</code> replaces the transport of the module (<code>Send-McoEwsRequest</code>), so the retries run as with a real server.</p>
-<p>The tests cover the configuration and the request, Exchange PowerShell (recipients, aliases and X500, nested groups, every room, every mailbox — mocked cmdlets), the EWS requests and answers, the compiled parser (property by property against the PowerShell one of 0.3.0), the totals, the CSV cells and the JSON, the progress and the time left, and on the simulated server: a whole search (each mailbox read once, GetItem by 50), paging (and items at the same time beyond a page), the retries, Remove then Restore (Recoverable Items by pages), the replay of a report (Remove, Transfer), Cancel, Transfer with its Transfers tab, the rooms mode, and the series by occurrences (one occurrence cancelled, the others intact; a deleted organizer; an organizer that cannot be read; every occurrence in the period; occurrences left out of a reviewed report; transfer refused).</p>
+<p>The tests cover the configuration and the request, Exchange PowerShell (recipients, aliases and X500, nested groups, every room, every mailbox — mocked cmdlets), the EWS requests and answers, the compiled parser (property by property against a PowerShell reference), the totals, the CSV cells and the JSON, the progress and the time left, and on the simulated server: a whole search (each mailbox read once, GetItem by 50), paging (and items at the same time beyond a page), the retries, Remove then Restore (Recoverable Items by pages), the replay of a report (Remove, Transfer), Cancel, Transfer with its Transfers tab, the rooms mode, and the series by occurrences (one occurrence cancelled, the others intact; a deleted organizer; an organizer that cannot be read; every occurrence in the period; occurrences left out of a reviewed report; transfer refused).</p>
 <div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code>.\tools\Measure-MeetingCleanupOnPrem.ps1 -Meetings 600 -LatencyMs 20 -Show   # a whole search on a simulated organization
 .\tools\Measure-MeetingCleanupOnPrem.ps1 -Root &lt;other version&gt; -Out C:\Temp\old  # the same data, to compare two versions
 </code></pre></div>
@@ -1155,10 +1151,11 @@ Add-RoleGroupMember 'View-Only Organization Management' -Member svc-meetingclean
 <ul>
 <li>the owner's timestamped Authenticode signature on every PowerShell file (<code>.ps1</code>, <code>.psm1</code>, the module <code>.psd1</code>) and on <code>PackageIntegrity.psd1</code>;</li>
 <li>the signed list <code>PackageIntegrity.psd1</code>: the SHA256 of every shipped file (the compiled helper source, the report template, the HTML guides, <code>README.md</code>, <code>LICENSE</code>, <code>THIRD-PARTY-NOTICES.md</code>, <code>CHANGELOG.md</code>);</li>
-<li>the folder rules of <code>src\Test-PackageIntegrity.ps1</code>: a file that is not listed, a missing file and a reparse point (junction, symbolic link) are refused. Only <code>config\MeetingCleanupOnPrem.config.psd1</code> (edited by the administrator) and the folders <code>reports\</code> and <code>logs\</code> (written by the tool) are not protected.</li>
+<li>the folder rules of <code>src\Test-PackageIntegrity.ps1</code>: a file that is not listed, a missing file and a reparse point (junction, symbolic link) are refused. Only <code>config\MeetingCleanupOnPrem.config.psd1</code> (edited by the administrator) and the folders <code>reports\</code> and <code>logs\</code> (written by the tool) are not protected: keep credential files and lists of addresses outside the tool folder.</li>
 </ul>
 <p>The compiled helper is built in memory from the verified <code>Native.cs</code> at each run: no assembly is cached, written or loaded from disk, so nothing executable is loaded unless the signed manifest covers it.</p>
 <p>A tree without a manifest (a source checkout, a developer build) starts only with <code>-DevelopmentMode</code>; a manifest that is present is always verified, in that mode too. Continuous integration builds an unsigned package with <code>-Unsigned</code> and verifies it with <code>-DevelopmentMode</code>.</p>
+<p>The HTML guides are the committed files of <code>package\docs\</code>: rebuild them by hand with <code>.\tools\Build-Documentation.ps1</code> (the footer carries the <code>updated</code> date of the front matter, so a rebuild without change gives the same bytes) and commit them before the manifest is written. The builder copies them as they are; <code>-RebuildDocs</code> rebuilds them first (not with <code>-Unsigned</code>).</p>
 <p>The owner signs a release in four phases:</p>
 <div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code>.\tools\New-MeetingCleanupOnPremPackage.ps1 -Destination C:\build\MeetingCleanupOnPrem-1.1.1   # refuses unsigned scripts
 .\tools\New-MeetingCleanupOnPremPackage.ps1 -Manifest C:\build\MeetingCleanupOnPrem-1.1.1      # unsigned PackageIntegrity.psd1
@@ -1302,8 +1299,8 @@ Restore-RecoverableItems -Identity adele.vance@contoso.com -FilterItemType IPM.A
 <td>refused: a credential file works</td>
 </tr>
 <tr>
-<td>Tool, <em>Report</em> of one organizer, 0.3.0 then 1.0 (each in its own process)</td>
-<td>the same <code>Meetings.csv</code>, <code>Copies.csv</code> and <code>Organizers.csv</code>; 119 s then 63 s</td>
+<td>Tool, <em>Report</em> of one organizer</td>
+<td><code>Meetings.csv</code>, <code>Copies.csv</code> and <code>Organizers.csv</code>; 63 s</td>
 </tr>
 <tr>
 <td>Tool, <em>Remove</em> of one meeting from a report (<code>-FromReport -MeetingId</code>)</td>
@@ -1339,7 +1336,7 @@ Restore-RecoverableItems -Identity adele.vance@contoso.com -FilterItemType IPM.A
 </tr>
 <tr>
 <td>Module, at each run</td>
-<td>About 10 s to compile its helper in memory (longer on a busy server)</td>
+<td>About 10 s on a workstation, up to 45 s measured on a busy lab server, to compile its helper in memory</td>
 </tr>
 <tr>
 <td>Tool 1.0, <code>-SearchIn Rooms</code> with every room of Exchange PowerShell</td>
@@ -1358,7 +1355,7 @@ Restore-RecoverableItems -Identity adele.vance@contoso.com -FilterItemType IPM.A
 </div></section><section class="section" id="appendix-d-versions"><div class="section-head"><div class="section-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8" r="1.5"/></svg></div><div><div class="section-eyebrow">Appendix D</div><h2>Versions</h2></div></div><div class="section-body">
 <p>MAJOR.MINOR.PATCH: MAJOR for a change of configuration or report format, MINOR for a new search or action, PATCH for a fix. Each change is described in <code>CHANGELOG.md</code>.</p>
 </div></section>
-<footer>Meeting Cleanup On-Prem 1.1.1 · Nicolas Fabert · generated on 2026-11-05 11:35 from MeetingCleanupOnPrem-Guide.md</footer></main>
+<footer>Meeting Cleanup On-Prem 1.1.1 · Nicolas Fabert · updated 2026-11-05 from MeetingCleanupOnPrem-Guide.md</footer></main>
 <button type="button" id="to-top" title="Back to top"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 14 6-6 6 6"/></svg></button>
 <dialog id="zoom"><img alt=""></dialog>
 <script>

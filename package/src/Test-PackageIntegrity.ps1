@@ -185,7 +185,7 @@ while ($queue.Count) {
         if ($relative -ceq 'PackageIntegrity.psd1') { continue }
         if ($relative -cin $editableFiles -or $relative -cin $sourceDocuments) { continue }
         if ($relative -cin $inventory) { continue }
-        throw "Package integrity: unexpected stable file: $relative"
+        throw "Package integrity: unexpected stable file: $relative. Move your own files (lists, certificates, copies of the configuration) out of the tool folder, for example to C:\Tools\MeetingCleanupOnPrem-data\. A file of the package that is changed or missing: download the ZIP again from the Releases page."
     }
 }
 [pscustomobject]@{
