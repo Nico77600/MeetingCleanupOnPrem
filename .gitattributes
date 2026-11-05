@@ -1,2 +1,32 @@
 # Language statistics: the guides are documentation, not code.
 package/docs/** linguist-documentation
+package/docs/*.html linguist-generated
+
+# Development-only paths: excluded from git archive and from the GitHub "Source code" assets.
+# The user deliverable is the release ZIP built by tools/New-MeetingCleanupOnPremPackage.ps1.
+.github/ export-ignore
+.gitattributes export-ignore
+.gitignore export-ignore
+AGENTS.md export-ignore
+Run-Tests.ps1 export-ignore
+tests/ export-ignore
+tools/ export-ignore
+package/docs/*.md export-ignore
+package/docs/images/ export-ignore
+
+# Authenticode-signed PowerShell files and the signed manifest: Git must keep their exact bytes (CRLF included).
+package/Invoke-MeetingCleanupOnPrem.ps1 -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+package/MeetingCleanupOnPrem.psm1 -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+package/MeetingCleanupOnPrem.psd1 -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+package/src/*.ps1 -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+package/PackageIntegrity.psd1 -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+# Every other file hashed in the signed PackageIntegrity.psd1 manifest: exact bytes on every checkout.
+package/src/*.cs -text
+package/templates/Report.template.html -text
+package/docs/MeetingCleanupOnPrem-Guide.html -text
+package/docs/MeetingCleanupOnPrem-UserGuide.html -text
+package/README.md -text
+package/LICENSE -text
+package/THIRD-PARTY-NOTICES.md -text
+CHANGELOG.md -text

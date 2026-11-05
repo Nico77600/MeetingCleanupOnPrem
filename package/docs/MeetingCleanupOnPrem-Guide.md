@@ -1,9 +1,9 @@
 ---
 title: Meeting Cleanup On-Prem
 subtitle: Developer guide
-version: 1.1.0
+version: 1.1.1
 author: Nicolas Fabert
-updated: 2026-10-07
+updated: 2026-11-05
 ---
 
 # Meeting Cleanup On-Prem — Developer guide
@@ -14,10 +14,10 @@ updated: 2026-10-07
 > Files downloaded from the Internet may be blocked by Windows and fail to run. Before using this project, unblock every file in the downloaded folder:
 >
 > ```powershell
-> Get-ChildItem "C:\Chemin\Du\Dossier" -Recurse -File -Force | Unblock-File
+> Get-ChildItem "C:\Tools\MeetingCleanupOnPrem-1.1.1" -Recurse -File -Force | Unblock-File
 > ```
 >
-> Replace the example path with the folder where you downloaded or extracted this project.
+> Replace the example path with the folder where you extracted the release ZIP.
 
 > [!NOTE]
 > This is the **developer guide**: how the tool works, the actions in detail, the rights, every setting, the console, the report, the architecture and how to modify and validate the tool. For the prerequisites and the everyday commands only, read the [user guide](MeetingCleanupOnPrem-UserGuide.md).
@@ -101,9 +101,9 @@ Every case is the same command: what changes is the organizer state, what is sea
 | **A series**, present or not at the organizer | the same: a series is one meeting, handled as a whole |
 | **One or some occurrences of a series** | `-Organizer <address> -Subject 'Weekly review' -SeriesScope Occurrences -Start 2026-11-16 -End 2026-11-16` |
 | **A period**, organizer present | `-Organizer <address> -Start 2026-11-01 -End 2026-12-31` |
-| **A period**, organizer deleted | `-Organizer <old address or X500> -SearchIn Rooms` then, for the meetings without room, `-SearchIn Mailboxes -MailboxFile .\team.txt` or `-SearchIn AllMailboxes` |
+| **A period**, organizer deleted | `-Organizer <old address or X500> -SearchIn Rooms` then, for the meetings without room, `-SearchIn Mailboxes -MailboxFile C:\Tools\MeetingCleanupOnPrem-data\team.txt` or `-SearchIn AllMailboxes` |
 | **A meeting chosen in a report** | `-Organizer <address> -MeetingId <MeetingId of the report>`, or `-FromReport <folder> -MeetingId <id>` |
-| **Several organizers** (leavers of the month, a team) | `-OrganizerFile .\leavers.txt` (or `-Organizer a@contoso.com, b@contoso.com`) with any of the cases above |
+| **Several organizers** (leavers of the month, a team) | `-OrganizerFile C:\Tools\MeetingCleanupOnPrem-data\leavers.txt` (or `-Organizer a@contoso.com, b@contoso.com`) with any of the cases above |
 | **Undo a Remove** | `-Action Restore -FromReport <folder of the Remove run>` |
 | **Every meeting of some rooms** over a period (works, closed floor) | `-Room room-paris-01@contoso.com, room-paris-02@contoso.com -Start 2026-11-02 -End 2026-11-13` (or `-RoomFile`) — then `-Action Cancel -Comment '...'` |
 | **Give the meetings of a person to someone else** | `-Organizer <address> -Action Transfer -NewOrganizer <address>` |
@@ -278,10 +278,12 @@ A new role applies to a new session: run the tool again (it opens its own remote
 Copy the folder, then unblock the files downloaded from the Internet:
 
 ```powershell
-Get-ChildItem 'C:\Tools\MeetingCleanupOnPrem' -Recurse -File -Force | Unblock-File
+Get-ChildItem 'C:\Tools\MeetingCleanupOnPrem-1.1.1' -Recurse -File -Force | Unblock-File
 ```
 
-The first run of a version compiles its helper (`src\MeetingCleanupOnPrem.Native.cs`) — a few seconds, up to a minute on a busy Exchange server — and keeps it in `%LOCALAPPDATA%\MeetingCleanupOnPrem` of the account: the next runs load it at once.
+Keep your own files (address lists, credential file, copies of the configuration) in a data folder next to the tool folder, `C:\Tools\MeetingCleanupOnPrem-data`, and give absolute paths: inside the tool folder only `config\MeetingCleanupOnPrem.config.psd1`, `reports\` and `logs\` may change. Each version is extracted into its own folder; on an upgrade, copy your configuration over the new one and update the paths of `Connection.CredentialFile`, `Search.RoomFile`, `Search.MailboxFile` and of the scheduled tasks (user guide, chapter 4).
+
+Every run compiles its helper (`src\MeetingCleanupOnPrem.Native.cs`) in memory: about 10 seconds on a workstation, up to a minute on a busy Exchange server. Nothing is written to disk.
 
 <!-- icon: settings -->
 ## 7. Configuration
@@ -303,8 +305,8 @@ The first run of a version compiles its helper (`src\MeetingCleanupOnPrem.Native
 | `Search.SearchIn` | `Organizer`, `Rooms` | Default of `-SearchIn`. |
 | `Search.PastDays` · `FutureDays` | `0` · `365` | Default period: today minus *PastDays* to today plus *FutureDays* (included). |
 | `Search.SeriesScope` | `Whole` | `Whole`: a series acted on whole; `Occurrences`: only its occurrences in the period (chapter 4). Rooms mode always acts on the occurrences of the period. |
-| `Search.Rooms` · `RoomFile` | | Rooms added to those of Exchange PowerShell (or the only ones without it). |
-| `Search.Mailboxes` · `MailboxFile` | | Default mailboxes of the `Mailboxes` scope. |
+| `Search.Rooms` · `RoomFile` | | Rooms added to those of Exchange PowerShell (or the only ones without it). `RoomFile`: absolute path, in the data folder `C:\Tools\MeetingCleanupOnPrem-data` (outside the tool folder). |
+| `Search.Mailboxes` · `MailboxFile` | | Default mailboxes of the `Mailboxes` scope. `MailboxFile`: absolute path, in the data folder. |
 | `Search.AcceptedDomains` | | The domains of the organization: an attendee of another domain is external (listed, not processed). Empty: every address is looked up. |
 | `Search.DirectoryMode` | `Auto` | `Auto` or `ExchangePowerShell`: the cmdlets when present; `None`: never. |
 | `Search.AllRooms` | `$true` | `$true`: every room mailbox of Exchange PowerShell, with `Rooms` and `RoomFile`; `$false`: `Rooms` and `RoomFile` only — when the impersonation is limited to some rooms (a room outside its scope is not read: warning). |
@@ -481,7 +483,7 @@ CSV files are UTF-8 with BOM; cells starting with `=`, `+`, `-`, `@` are prefixe
 | `src\MeetingCleanupOnPrem.Restore.ps1` | Restore: copies of the run, Recoverable Items, verification. |
 | `src\MeetingCleanupOnPrem.Transfer.ps1` | Transfer: plan, re-creation by the new organizer, old meeting, verification. |
 | `src\MeetingCleanupOnPrem.Report.ps1` · `templates\Report.template.html` | CSV, JSON and HTML. |
-| `src\MeetingCleanupOnPrem.Native.cs` | Compiled helper (C#, `Add-Type`, kept in `%LOCALAPPDATA%\MeetingCleanupOnPrem`): calendar items of the EWS answers, recurrence in words, dates, totals, rows, CSV and JSON of the report. |
+| `src\MeetingCleanupOnPrem.Native.cs` | Compiled helper (C#, `Add-Type`, compiled in memory at each run): calendar items of the EWS answers, recurrence in words, dates, totals, rows, CSV and JSON of the report. |
 
 **EWS requests.** Every request is a SOAP `POST` to the EWS URL, with the impersonation header of the mailbox and its `X-AnchorMailbox`. A calendar is read with **CalendarView** (few properties, every occurrence); CalendarView has no offset, so while Exchange answers `IncludesLastItemInRange="false"`, the next page starts at the start of the last item received, and the items seen twice are kept once. When more items start at the same time than a page holds, the next page jumps past them and the run ends with a warning. During a search, each CalendarView is kept: an attendee mailbox shared by many meetings is read once. The details come from **GetItem**, 50 items per call (the series master of an occurrence with `RecurringMasterItemId`); a batch refused as a whole is read again item by item. A request that Exchange did not process — `ErrorServerBusy` (throttling, after its `BackOffMilliseconds`) or HTTP 503 — is sent again up to `Connection.MaxRetries` times; after a network error only a read is sent again, never a change.
 
@@ -491,11 +493,10 @@ CSV files are UTF-8 with BOM; cells starting with `=`, `+`, `-`, `@` are prefixe
 | Measure | Result |
 |---|---|
 | Simulated organization, 600 meetings, 4,800 copies (`tools\Measure-MeetingCleanupOnPrem.ps1`) | 166 EWS calls (53 CalendarView, 113 GetItem); 12 s; report 1.7 s |
-| The same, version 0.3.0 (one CalendarView per meeting and attendee, one GetItem per item) | 8,424 EWS calls, 405 s; report 7.1 s |
-| 200 meetings, 20 ms per EWS answer | 8.5 s (0.3.0: 152 s) |
-| Lab Exchange 2019, report of one organizer (4 meetings, 16 copies), including remote PowerShell | 63 s, of which about 50 s to open remote PowerShell and EWS (0.3.0: 119 s) |
+| 200 meetings, 20 ms per EWS answer | 8.5 s |
+| Lab Exchange 2019, report of one organizer (4 meetings, 16 copies), including remote PowerShell | 63 s, of which about 50 s to open remote PowerShell and EWS |
 | Lab, a room of 32 items read in pages of 10 | 4 pages; the same files as one page of 500 |
-| Module loaded | 0.3 s; the first run of a version compiles its helper (up to 45 s on a busy lab server) |
+| Module loaded | About 10 s on a workstation, measured; up to a minute on a busy Exchange server (the helper is compiled in memory at each run) |
 
 - **Exchange Server only**: a mailbox moved to Exchange Online cannot be opened by the on-premises EWS of the impersonated account; it is listed as not processed (use [Meeting Cleanup](https://github.com/Nico77600/MeetingCleanup) there).
 - **CalendarView**: more items starting at the same minute in one calendar than `Connection.PageSize` cannot all be read (warning); raise the page size.
@@ -514,7 +515,7 @@ CSV files are UTF-8 with BOM; cells starting with `=`, `+`, `-`, `@` are prefixe
 
 `tests\FakeEws.ps1` is a simulated Exchange Server in memory: calendars with the same UID in every copy, room copies with the organizer's name as subject, series with their occurrences, CalendarView sorted by start and cut at `MaxEntriesReturned` (`IncludesLastItemInRange`), GetItem of one or many items (a series master by its occurrence), DeleteItem to Recoverable Items, cancellation received by every copy (of that occurrence only for an occurrence), creation of a meeting sent to its attendees and rooms, Recoverable Items read by offset and `MoveItem`, a mailbox that does not exist or answers with an error, throttling (`ErrorServerBusy`). `Install-FakeEws` replaces the transport of the module (`Send-McoEwsRequest`), so the retries run as with a real server.
 
-The tests cover the configuration and the request, Exchange PowerShell (recipients, aliases and X500, nested groups, every room, every mailbox — mocked cmdlets), the EWS requests and answers, the compiled parser (property by property against the PowerShell one of 0.3.0), the totals, the CSV cells and the JSON, the progress and the time left, and on the simulated server: a whole search (each mailbox read once, GetItem by 50), paging (and items at the same time beyond a page), the retries, Remove then Restore (Recoverable Items by pages), the replay of a report (Remove, Transfer), Cancel, Transfer with its Transfers tab, the rooms mode, and the series by occurrences (one occurrence cancelled, the others intact; a deleted organizer; an organizer that cannot be read; every occurrence in the period; occurrences left out of a reviewed report; transfer refused).
+The tests cover the configuration and the request, Exchange PowerShell (recipients, aliases and X500, nested groups, every room, every mailbox — mocked cmdlets), the EWS requests and answers, the compiled parser (property by property against a PowerShell reference), the totals, the CSV cells and the JSON, the progress and the time left, and on the simulated server: a whole search (each mailbox read once, GetItem by 50), paging (and items at the same time beyond a page), the retries, Remove then Restore (Recoverable Items by pages), the replay of a report (Remove, Transfer), Cancel, Transfer with its Transfers tab, the rooms mode, and the series by occurrences (one occurrence cancelled, the others intact; a deleted organizer; an organizer that cannot be read; every occurrence in the period; occurrences left out of a reviewed report; transfer refused).
 
 ```powershell
 .\tools\Measure-MeetingCleanupOnPrem.ps1 -Meetings 600 -LatencyMs 20 -Show   # a whole search on a simulated organization
@@ -535,8 +536,37 @@ A link from one guide to the other is written with its GitHub anchor (`MeetingCl
 .\tools\New-DocumentationImages.ps1          # console and report images, from the simulated Exchange
 .\tools\Build-Documentation.ps1              # both guides in HTML (self-contained, light and dark)
 .\tools\New-ReadmeImages.ps1                 # the graphics of the GitHub page (light and dark), after the HTML guides
-.\tools\New-MeetingCleanupOnPremPackage.ps1  # package: run-time files from package\ and both HTML guides only
+.\tools\New-MeetingCleanupOnPremPackage.ps1  # package folder: run-time files from package\ and both HTML guides only (see below)
 ```
+
+### Developers: get the sources
+
+Users start from the release ZIP. To work on the tool, `git clone https://github.com/Nico77600/MeetingCleanupOnPrem`, then run `.\Run-Tests.ps1` (Pester 6.1 or later, a simulated Exchange Server, no network). A source tree has no `PackageIntegrity.psd1`: start it with `-DevelopmentMode`.
+
+### Package integrity and signing procedure
+
+A release package is protected by three things, checked before anything loads (`Invoke-MeetingCleanupOnPrem.ps1` first, then the module when it is imported directly):
+
+- the owner's timestamped Authenticode signature on every PowerShell file (`.ps1`, `.psm1`, the module `.psd1`) and on `PackageIntegrity.psd1`;
+- the signed list `PackageIntegrity.psd1`: the SHA256 of every shipped file (the compiled helper source, the report template, the HTML guides, `README.md`, `LICENSE`, `THIRD-PARTY-NOTICES.md`, `CHANGELOG.md`);
+- the folder rules of `src\Test-PackageIntegrity.ps1`: a file that is not listed, a missing file and a reparse point (junction, symbolic link) are refused. Only `config\MeetingCleanupOnPrem.config.psd1` (edited by the administrator) and the folders `reports\` and `logs\` (written by the tool) are not protected: keep credential files and lists of addresses outside the tool folder. The folders `reports\` and `logs\` are checked for reparse points before they are skipped: a junction or symbolic link in their place is refused. This is stricter than ExchangeLogReport on purpose.
+
+The compiled helper is built in memory from the verified `Native.cs` at each run: no assembly is cached, written or loaded from disk, so nothing executable is loaded unless the signed manifest covers it.
+
+A tree without a manifest (a source checkout, a developer build) starts only with `-DevelopmentMode`; a manifest that is present is always verified, in that mode too. Once the signed manifest is committed, a developer who edits a protected file deletes `package\PackageIntegrity.psd1` in the working copy (never committed) and starts with `-DevelopmentMode`. Continuous integration builds an unsigned package with `-Unsigned` and verifies it with `-DevelopmentMode`.
+
+The HTML guides are the committed files of `package\docs\`: rebuild them by hand with `.\tools\Build-Documentation.ps1` (the footer carries the `updated` date of the front matter, so a rebuild without change gives the same bytes) and commit them before the manifest is written. The builder copies them as they are; `-RebuildDocs` rebuilds them first (not with `-Unsigned`).
+
+The owner signs a release in four phases:
+
+```powershell
+.\tools\New-MeetingCleanupOnPremPackage.ps1 -Destination C:\build\MeetingCleanupOnPrem-1.1.1   # refuses unsigned scripts
+.\tools\New-MeetingCleanupOnPremPackage.ps1 -Manifest C:\build\MeetingCleanupOnPrem-1.1.1      # unsigned PackageIntegrity.psd1
+# sign PackageIntegrity.psd1 (timestamped), copy it to package\PackageIntegrity.psd1
+.\tools\New-MeetingCleanupOnPremPackage.ps1 -Seal C:\build\MeetingCleanupOnPrem-1.1.1          # verifies, writes the ZIP, prints its SHA256
+```
+
+The PowerShell files are signed first (RFC 3161 timestamp), so the manifest records their final bytes; any change to a protected file after that needs a new manifest. `.gitattributes` keeps the exact bytes (CRLF) of the signed files.
 
 # Appendices
 
@@ -555,9 +585,11 @@ A link from one guide to the other is written with its GitHub anchor (`MeetingCl
 | A meeting known to exist is not found | Period (a series is found when an occurrence falls in it), address of the organizer (the address shown in the meeting; X500 for a deleted mailbox), or scope: a meeting without room and without organizer copy needs `Mailboxes` or `AllMailboxes`. |
 | *more than 500 items at ..., some of them may be missing* | Raise `Connection.PageSize` (up to 1,000). |
 | *Confirmation needed: run interactively, or add -Force* | An action without a console (scheduled task): add `-Force`. |
+| *Package integrity: unexpected stable file: <name>* | A file that is not part of the package is in the tool folder: move your own files (lists, credential file, copies of the configuration) to `C:\Tools\MeetingCleanupOnPrem-data` and use absolute paths. |
+| *Package integrity: SHA256 mismatch: <name>* · *missing inventory path* · *expected trusted, timestamped owner signature* · *PackageIntegrity.psd1 is missing* | A file of the package was changed, removed or is not signed, or the manifest is missing: download the ZIP again from the Releases page and extract it into a new folder. A source tree without a manifest starts only with `-DevelopmentMode`. |
 | *Series by occurrences: give the period of the action* | `-SeriesScope Occurrences` (or `Search.SeriesScope`) with *Remove* or *Cancel*: `-Start` and `-End` are required. |
 | *Transfer moves whole series* | `-SeriesScope Occurrences` with *Transfer*: use `-SeriesScope Whole`. |
-| *Meeting Cleanup On-Prem 1.1.0 is already loaded in this PowerShell session* | The compiled part of another version is loaded in this process (it cannot be unloaded): open a new PowerShell window. |
+| *Meeting Cleanup On-Prem 1.1.1 is already loaded in this PowerShell session* | The compiled part of another version is loaded in this process (it cannot be unloaded): open a new PowerShell window. |
 | *Cannot add type* · *... is not allowed in this language mode* when the module loads | PowerShell runs in *Constrained Language* mode (AppLocker or App Control policy): the tool needs *Full Language* (a folder allowed by the policy, or signed scripts). |
 | *Get-RecoverableItems is not available* | The role Mailbox Import Export is missing (chapter 5), or the Exchange cmdlets are not loaded (`ManagementShell`). |
 | Restore: copies *Not found* | Retention of deleted items over, copy already restored, or removed by someone else after the run. `Backup.json` says what was there. |
@@ -593,7 +625,7 @@ A lab Exchange Server 2019 (EWS `V2017_07_11`), four Mailbox servers behind a lo
 | Kerberos to the name of the EWS URL from the servers | refused (IIS 401.1, no alternate service account): NTLM works |
 | EWS from a Mailbox server through the load balancer | timeout (hairpin): `Connection.EwsServer` to another server works |
 | NTLM single sign-on in a batch logon (Credential Guard) | refused: a credential file works |
-| Tool, *Report* of one organizer, 0.3.0 then 1.0 (each in its own process) | the same `Meetings.csv`, `Copies.csv` and `Organizers.csv`; 119 s then 63 s |
+| Tool, *Report* of one organizer | `Meetings.csv`, `Copies.csv` and `Organizers.csv`; 63 s |
 | Tool, *Remove* of one meeting from a report (`-FromReport -MeetingId`) | 4 copies removed (3 attendees, 1 room) and verified gone, organizer kept, **no message** |
 | Tool, *Restore* of that run (Exchange PowerShell) | 4 copies back and verified; the room *Accept* again, the attendees with their answer; **no message** |
 | Tool, *Cancel* of one meeting | 1 cancellation with the message; the room removed its copy itself (*Already gone*); 2 attendee copies removed |
@@ -602,7 +634,7 @@ A lab Exchange Server 2019 (EWS `V2017_07_11`), four Mailbox servers behind a lo
 | Tool, *Transfer* of a daily series of 30 occurrences | re-created from its next occurrence; *Transfers* tab: *Mailbox present*, *Re-created*, *Created* (1 attendee, 1 room invited), old meeting *Cancelled*, 2 old copies removed |
 | Tool, rooms mode, 2 rooms over 8 weeks | 4 meetings of 3 organizers; a series limited to its 4 occurrences in the period (12 occurrence copies) |
 | Tool, a room of 32 items, pages of 10 then 500 | 4 pages; the same CSV files |
-| Module, first run of a version on a busy server | 45 s to compile its helper; then 0.3 s |
+| Module, at each run | About 10 s on a workstation, up to 45 s measured on a busy lab server, to compile its helper in memory |
 | Tool 1.0, `-SearchIn Rooms` with every room of Exchange PowerShell | 5 rooms listed, 3 of them outside the management scope of the impersonation: *ErrorImpersonateUserDenied*, 3 warnings (exit code 2); with `Search.AllRooms = $false`, the 2 rooms of the configuration, no warning |
 | Tool 1.0, an organizer address that is not in the directory | `Get-Recipient`: *couldn't be found*; shown *not in the directory*, its calendar not opened, the run completed |
 | Tool 1.1, a weekly series of 4 (organizer, an attendee, a room): `-SeriesScope Occurrences` over one day, *Cancel* | 1 occurrence cancelled by the organizer, the room removed it itself (*Already gone*), the attendee's removed and verified; 60 s later the 3 other occurrences intact in the three calendars, **one** *Canceled:* in the attendee's inbox |

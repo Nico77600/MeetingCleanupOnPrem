@@ -155,15 +155,15 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--cp-bor
   main { padding: 0; max-width: none; } .section { break-inside: avoid-page; box-shadow: none; } .part { break-before: page; }
 }
 </style></head><body>
-<aside><div class="brand"><div class="brand-logo"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div><div><div class="brand-name">Meeting Cleanup On-Prem</div><div class="brand-sub">Developer guide · v1.1.0</div></div></div>
+<aside><div class="brand"><div class="brand-logo"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div><div><div class="brand-name">Meeting Cleanup On-Prem</div><div class="brand-sub">Developer guide · v1.1.1</div></div></div>
 <nav aria-label="Contents"><a href="#quick-start" data-target="quick-start"><span class="nav-badge"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4z"/></svg></span><span class="nav-text">Quick start</span></a><div class="nav-part">Part I <span>Understand</span></div><a href="#purpose" data-target="purpose"><span class="nav-badge">1</span><span class="nav-text">Purpose</span></a><a href="#how-it-works" data-target="how-it-works"><span class="nav-badge">2</span><span class="nav-text">How it works</span></a><a href="#the-cases" data-target="the-cases"><span class="nav-badge">3</span><span class="nav-text">The cases</span></a><a href="#the-actions" data-target="the-actions"><span class="nav-badge">4</span><span class="nav-text">The actions</span></a><div class="nav-part">Part II <span>Set up</span></div><a href="#rights-and-connection" data-target="rights-and-connection"><span class="nav-badge">5</span><span class="nav-text">Rights and connection</span></a><a href="#installation" data-target="installation"><span class="nav-badge">6</span><span class="nav-text">Installation</span></a><a href="#configuration" data-target="configuration"><span class="nav-badge">7</span><span class="nav-text">Configuration</span></a><div class="nav-part">Part III <span>Use</span></div><a href="#command-line" data-target="command-line"><span class="nav-badge">8</span><span class="nav-text">Command line</span></a><a href="#console" data-target="console"><span class="nav-badge">9</span><span class="nav-text">Console</span></a><a href="#reading-the-report" data-target="reading-the-report"><span class="nav-badge">10</span><span class="nav-text">Reading the report</span></a><a href="#files-produced" data-target="files-produced"><span class="nav-badge">11</span><span class="nav-text">Files produced</span></a><div class="nav-part">Part IV <span>Maintain</span></div><a href="#architecture" data-target="architecture"><span class="nav-badge">12</span><span class="nav-text">Architecture</span></a><a href="#performance-and-limits" data-target="performance-and-limits"><span class="nav-badge">13</span><span class="nav-text">Performance and limits</span></a><a href="#tests" data-target="tests"><span class="nav-badge">14</span><span class="nav-text">Tests</span></a><a href="#documentation-and-package" data-target="documentation-and-package"><span class="nav-badge">15</span><span class="nav-text">Documentation and package</span></a><div class="nav-part">Appendices</div><a href="#appendix-a-troubleshooting" data-target="appendix-a-troubleshooting"><span class="nav-badge">A</span><span class="nav-text">Troubleshooting</span></a><a href="#appendix-b-security-and-recovery" data-target="appendix-b-security-and-recovery"><span class="nav-badge">B</span><span class="nav-text">Security and recovery</span></a><a href="#appendix-c-lab-measurements" data-target="appendix-c-lab-measurements"><span class="nav-badge">C</span><span class="nav-text">Lab measurements</span></a><a href="#appendix-d-versions" data-target="appendix-d-versions"><span class="nav-badge">D</span><span class="nav-text">Versions</span></a></nav></aside>
-<main><header class="hero" id="top"><div class="hero-top"><div class="hero-logo"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div><div><div class="eyebrow">Developer guide</div><h1>Meeting Cleanup On-Prem</h1></div><button type="button" id="theme" class="ghost" title="Light / dark"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg></button></div><div class="badges"><span class="badge badge-accent">Version 1.1.0</span><span class="badge"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Updated 2026-10-07</span><span class="badge"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Nicolas Fabert</span><span class="badge"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></svg>PowerShell 7.4+</span><span class="badge"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="7" rx="2"/><rect x="4" y="14" width="16" height="7" rx="2"/><path d="M8 6.5h.01M8 17.5h.01"/></svg>Exchange Server · EWS · no stored password</span></div><p class="lead">Finds the meetings of one or many organizers — whether the mailbox still exists or has been deleted — or <strong>every meeting of some rooms</strong> in <strong>Exchange Server</strong>: one meeting, a series or every meeting of a period, in <strong>every calendar</strong> where they are: the organizer, the rooms, the attendees, the members of the groups invited. Then removes them <strong>silently</strong>, has the organizer <strong>cancel</strong> them, or <strong>transfers</strong> them to a new organizer; a silent removal can be <strong>undone</strong>. EWS and Exchange PowerShell, console, CSV, JSON and HTML reports.</p>
+<main><header class="hero" id="top"><div class="hero-top"><div class="hero-logo"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div><div><div class="eyebrow">Developer guide</div><h1>Meeting Cleanup On-Prem</h1></div><button type="button" id="theme" class="ghost" title="Light / dark"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg></button></div><div class="badges"><span class="badge badge-accent">Version 1.1.1</span><span class="badge"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Updated 2026-11-05</span><span class="badge"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Nicolas Fabert</span><span class="badge"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></svg>PowerShell 7.4+</span><span class="badge"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="7" rx="2"/><rect x="4" y="14" width="16" height="7" rx="2"/><path d="M8 6.5h.01M8 17.5h.01"/></svg>Exchange Server · EWS · no stored password</span></div><p class="lead">Finds the meetings of one or many organizers — whether the mailbox still exists or has been deleted — or <strong>every meeting of some rooms</strong> in <strong>Exchange Server</strong>: one meeting, a series or every meeting of a period, in <strong>every calendar</strong> where they are: the organizer, the rooms, the attendees, the members of the groups invited. Then removes them <strong>silently</strong>, has the organizer <strong>cancel</strong> them, or <strong>transfers</strong> them to a new organizer; a silent removal can be <strong>undone</strong>. EWS and Exchange PowerShell, console, CSV, JSON and HTML reports.</p>
 <div class="markdown-alert markdown-alert-important">
 <p class="markdown-alert-title"><svg class="icon-sm" viewBox="0 0 16 16" fill="currentColor" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Important</p>
 <p>Files downloaded from the Internet may be blocked by Windows and fail to run. Before using this project, unblock every file in the downloaded folder:</p>
-<div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code>Get-ChildItem &quot;C:\Chemin\Du\Dossier&quot; -Recurse -File -Force | Unblock-File
+<div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code>Get-ChildItem &quot;C:\Tools\MeetingCleanupOnPrem-1.1.1&quot; -Recurse -File -Force | Unblock-File
 </code></pre></div>
-<p>Replace the example path with the folder where you downloaded or extracted this project.</p>
+<p>Replace the example path with the folder where you extracted the release ZIP.</p>
 </div>
 <div class="markdown-alert markdown-alert-note">
 <p class="markdown-alert-title"><svg class="icon-sm" viewBox="0 0 16 16" fill="currentColor" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
@@ -254,7 +254,7 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--cp-bor
 </tr>
 <tr>
 <td><strong>A period</strong>, organizer deleted</td>
-<td><code class="long">-Organizer &lt;old address or X500&gt; -SearchIn Rooms</code> then, for the meetings without room, <code>-SearchIn Mailboxes -MailboxFile .\team.txt</code> or <code>-SearchIn AllMailboxes</code></td>
+<td><code class="long">-Organizer &lt;old address or X500&gt; -SearchIn Rooms</code> then, for the meetings without room, <code class="long">-SearchIn Mailboxes -MailboxFile C:\Tools\MeetingCleanupOnPrem-data\team.txt</code> or <code>-SearchIn AllMailboxes</code></td>
 </tr>
 <tr>
 <td><strong>A meeting chosen in a report</strong></td>
@@ -262,7 +262,7 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--cp-bor
 </tr>
 <tr>
 <td><strong>Several organizers</strong> (leavers of the month, a team)</td>
-<td><code>-OrganizerFile .\leavers.txt</code> (or <code>-Organizer a@contoso.com, b@contoso.com</code>) with any of the cases above</td>
+<td><code class="long">-OrganizerFile C:\Tools\MeetingCleanupOnPrem-data\leavers.txt</code> (or <code>-Organizer a@contoso.com, b@contoso.com</code>) with any of the cases above</td>
 </tr>
 <tr>
 <td><strong>Undo a Remove</strong></td>
@@ -536,9 +536,10 @@ Add-RoleGroupMember 'View-Only Organization Management' -Member svc-meetingclean
 </tbody>
 </table></div>
 <p>Copy the folder, then unblock the files downloaded from the Internet:</p>
-<div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code>Get-ChildItem 'C:\Tools\MeetingCleanupOnPrem' -Recurse -File -Force | Unblock-File
+<div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code>Get-ChildItem 'C:\Tools\MeetingCleanupOnPrem-1.1.1' -Recurse -File -Force | Unblock-File
 </code></pre></div>
-<p>The first run of a version compiles its helper (<code>src\MeetingCleanupOnPrem.Native.cs</code>) — a few seconds, up to a minute on a busy Exchange server — and keeps it in <code>%LOCALAPPDATA%\MeetingCleanupOnPrem</code> of the account: the next runs load it at once.</p>
+<p>Keep your own files (address lists, credential file, copies of the configuration) in a data folder next to the tool folder, <code>C:\Tools\MeetingCleanupOnPrem-data</code>, and give absolute paths: inside the tool folder only <code>config\MeetingCleanupOnPrem.config.psd1</code>, <code>reports\</code> and <code>logs\</code> may change. Each version is extracted into its own folder; on an upgrade, copy your configuration over the new one and update the paths of <code>Connection.CredentialFile</code>, <code>Search.RoomFile</code>, <code>Search.MailboxFile</code> and of the scheduled tasks (user guide, chapter 4).</p>
+<p>Every run compiles its helper (<code>src\MeetingCleanupOnPrem.Native.cs</code>) in memory: about 10 seconds on a workstation, up to a minute on a busy Exchange server. Nothing is written to disk.</p>
 </div></section><section class="section" id="configuration"><div class="section-head"><div class="section-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg></div><div><div class="section-eyebrow">Chapter 7</div><h2>Configuration</h2></div></div><div class="section-body">
 <p><code>config\MeetingCleanupOnPrem.config.psd1</code> is a PowerShell data file. Every value is checked at start and all the problems are listed at once; the parameters of the command line override it for one run.</p>
 <div class="table-wrap"><table>
@@ -618,12 +619,12 @@ Add-RoleGroupMember 'View-Only Organization Management' -Member svc-meetingclean
 <tr>
 <td><code>Search.Rooms</code> · <code>RoomFile</code></td>
 <td></td>
-<td>Rooms added to those of Exchange PowerShell (or the only ones without it).</td>
+<td>Rooms added to those of Exchange PowerShell (or the only ones without it). <code>RoomFile</code>: absolute path, in the data folder <code>C:\Tools\MeetingCleanupOnPrem-data</code> (outside the tool folder).</td>
 </tr>
 <tr>
 <td><code>Search.Mailboxes</code> · <code>MailboxFile</code></td>
 <td></td>
-<td>Default mailboxes of the <code>Mailboxes</code> scope.</td>
+<td>Default mailboxes of the <code>Mailboxes</code> scope. <code>MailboxFile</code>: absolute path, in the data folder.</td>
 </tr>
 <tr>
 <td><code>Search.AcceptedDomains</code></td>
@@ -1063,7 +1064,7 @@ Add-RoleGroupMember 'View-Only Organization Management' -Member svc-meetingclean
 </tr>
 <tr>
 <td><code>src\MeetingCleanupOnPrem.Native.cs</code></td>
-<td>Compiled helper (C#, <code>Add-Type</code>, kept in <code>%LOCALAPPDATA%\MeetingCleanupOnPrem</code>): calendar items of the EWS answers, recurrence in words, dates, totals, rows, CSV and JSON of the report.</td>
+<td>Compiled helper (C#, <code>Add-Type</code>, compiled in memory at each run): calendar items of the EWS answers, recurrence in words, dates, totals, rows, CSV and JSON of the report.</td>
 </tr>
 </tbody>
 </table></div>
@@ -1082,16 +1083,12 @@ Add-RoleGroupMember 'View-Only Organization Management' -Member svc-meetingclean
 <td>166 EWS calls (53 CalendarView, 113 GetItem); 12 s; report 1.7 s</td>
 </tr>
 <tr>
-<td>The same, version 0.3.0 (one CalendarView per meeting and attendee, one GetItem per item)</td>
-<td>8,424 EWS calls, 405 s; report 7.1 s</td>
-</tr>
-<tr>
 <td>200 meetings, 20 ms per EWS answer</td>
-<td>8.5 s (0.3.0: 152 s)</td>
+<td>8.5 s</td>
 </tr>
 <tr>
 <td>Lab Exchange 2019, report of one organizer (4 meetings, 16 copies), including remote PowerShell</td>
-<td>63 s, of which about 50 s to open remote PowerShell and EWS (0.3.0: 119 s)</td>
+<td>63 s, of which about 50 s to open remote PowerShell and EWS</td>
 </tr>
 <tr>
 <td>Lab, a room of 32 items read in pages of 10</td>
@@ -1099,7 +1096,7 @@ Add-RoleGroupMember 'View-Only Organization Management' -Member svc-meetingclean
 </tr>
 <tr>
 <td>Module loaded</td>
-<td>0.3 s; the first run of a version compiles its helper (up to 45 s on a busy lab server)</td>
+<td>About 10 s on a workstation, measured; up to a minute on a busy Exchange server (the helper is compiled in memory at each run)</td>
 </tr>
 </tbody>
 </table></div>
@@ -1116,7 +1113,7 @@ Add-RoleGroupMember 'View-Only Organization Management' -Member svc-meetingclean
 <div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code>.\Run-Tests.ps1      # Pester 6.1+, a simulated Exchange Server, no network
 </code></pre></div>
 <p><code>tests\FakeEws.ps1</code> is a simulated Exchange Server in memory: calendars with the same UID in every copy, room copies with the organizer's name as subject, series with their occurrences, CalendarView sorted by start and cut at <code>MaxEntriesReturned</code> (<code>IncludesLastItemInRange</code>), GetItem of one or many items (a series master by its occurrence), DeleteItem to Recoverable Items, cancellation received by every copy (of that occurrence only for an occurrence), creation of a meeting sent to its attendees and rooms, Recoverable Items read by offset and <code>MoveItem</code>, a mailbox that does not exist or answers with an error, throttling (<code>ErrorServerBusy</code>). <code>Install-FakeEws</code> replaces the transport of the module (<code>Send-McoEwsRequest</code>), so the retries run as with a real server.</p>
-<p>The tests cover the configuration and the request, Exchange PowerShell (recipients, aliases and X500, nested groups, every room, every mailbox — mocked cmdlets), the EWS requests and answers, the compiled parser (property by property against the PowerShell one of 0.3.0), the totals, the CSV cells and the JSON, the progress and the time left, and on the simulated server: a whole search (each mailbox read once, GetItem by 50), paging (and items at the same time beyond a page), the retries, Remove then Restore (Recoverable Items by pages), the replay of a report (Remove, Transfer), Cancel, Transfer with its Transfers tab, the rooms mode, and the series by occurrences (one occurrence cancelled, the others intact; a deleted organizer; an organizer that cannot be read; every occurrence in the period; occurrences left out of a reviewed report; transfer refused).</p>
+<p>The tests cover the configuration and the request, Exchange PowerShell (recipients, aliases and X500, nested groups, every room, every mailbox — mocked cmdlets), the EWS requests and answers, the compiled parser (property by property against a PowerShell reference), the totals, the CSV cells and the JSON, the progress and the time left, and on the simulated server: a whole search (each mailbox read once, GetItem by 50), paging (and items at the same time beyond a page), the retries, Remove then Restore (Recoverable Items by pages), the replay of a report (Remove, Transfer), Cancel, Transfer with its Transfers tab, the rooms mode, and the series by occurrences (one occurrence cancelled, the others intact; a deleted organizer; an organizer that cannot be read; every occurrence in the period; occurrences left out of a reviewed report; transfer refused).</p>
 <div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code>.\tools\Measure-MeetingCleanupOnPrem.ps1 -Meetings 600 -LatencyMs 20 -Show   # a whole search on a simulated organization
 .\tools\Measure-MeetingCleanupOnPrem.ps1 -Root &lt;other version&gt; -Out C:\Temp\old  # the same data, to compare two versions
 </code></pre></div>
@@ -1146,8 +1143,27 @@ Add-RoleGroupMember 'View-Only Organization Management' -Member svc-meetingclean
 <div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code>.\tools\New-DocumentationImages.ps1          # console and report images, from the simulated Exchange
 .\tools\Build-Documentation.ps1              # both guides in HTML (self-contained, light and dark)
 .\tools\New-ReadmeImages.ps1                 # the graphics of the GitHub page (light and dark), after the HTML guides
-.\tools\New-MeetingCleanupOnPremPackage.ps1  # package: run-time files from package\ and both HTML guides only
+.\tools\New-MeetingCleanupOnPremPackage.ps1  # package folder: run-time files from package\ and both HTML guides only (see below)
 </code></pre></div>
+<h3 id="developers-get-the-sources">Developers: get the sources</h3>
+<p>Users start from the release ZIP. To work on the tool, <code>git clone https://github.com/Nico77600/MeetingCleanupOnPrem</code>, then run <code>.\Run-Tests.ps1</code> (Pester 6.1 or later, a simulated Exchange Server, no network). A source tree has no <code>PackageIntegrity.psd1</code>: start it with <code>-DevelopmentMode</code>.</p>
+<h3 id="package-integrity-and-signing-procedure">Package integrity and signing procedure</h3>
+<p>A release package is protected by three things, checked before anything loads (<code>Invoke-MeetingCleanupOnPrem.ps1</code> first, then the module when it is imported directly):</p>
+<ul>
+<li>the owner's timestamped Authenticode signature on every PowerShell file (<code>.ps1</code>, <code>.psm1</code>, the module <code>.psd1</code>) and on <code>PackageIntegrity.psd1</code>;</li>
+<li>the signed list <code>PackageIntegrity.psd1</code>: the SHA256 of every shipped file (the compiled helper source, the report template, the HTML guides, <code>README.md</code>, <code>LICENSE</code>, <code>THIRD-PARTY-NOTICES.md</code>, <code>CHANGELOG.md</code>);</li>
+<li>the folder rules of <code>src\Test-PackageIntegrity.ps1</code>: a file that is not listed, a missing file and a reparse point (junction, symbolic link) are refused. Only <code>config\MeetingCleanupOnPrem.config.psd1</code> (edited by the administrator) and the folders <code>reports\</code> and <code>logs\</code> (written by the tool) are not protected: keep credential files and lists of addresses outside the tool folder. The folders <code>reports\</code> and <code>logs\</code> are checked for reparse points before they are skipped: a junction or symbolic link in their place is refused. This is stricter than ExchangeLogReport on purpose.</li>
+</ul>
+<p>The compiled helper is built in memory from the verified <code>Native.cs</code> at each run: no assembly is cached, written or loaded from disk, so nothing executable is loaded unless the signed manifest covers it.</p>
+<p>A tree without a manifest (a source checkout, a developer build) starts only with <code>-DevelopmentMode</code>; a manifest that is present is always verified, in that mode too. Once the signed manifest is committed, a developer who edits a protected file deletes <code>package\PackageIntegrity.psd1</code> in the working copy (never committed) and starts with <code>-DevelopmentMode</code>. Continuous integration builds an unsigned package with <code>-Unsigned</code> and verifies it with <code>-DevelopmentMode</code>.</p>
+<p>The HTML guides are the committed files of <code>package\docs\</code>: rebuild them by hand with <code>.\tools\Build-Documentation.ps1</code> (the footer carries the <code>updated</code> date of the front matter, so a rebuild without change gives the same bytes) and commit them before the manifest is written. The builder copies them as they are; <code>-RebuildDocs</code> rebuilds them first (not with <code>-Unsigned</code>).</p>
+<p>The owner signs a release in four phases:</p>
+<div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code>.\tools\New-MeetingCleanupOnPremPackage.ps1 -Destination C:\build\MeetingCleanupOnPrem-1.1.1   # refuses unsigned scripts
+.\tools\New-MeetingCleanupOnPremPackage.ps1 -Manifest C:\build\MeetingCleanupOnPrem-1.1.1      # unsigned PackageIntegrity.psd1
+# sign PackageIntegrity.psd1 (timestamped), copy it to package\PackageIntegrity.psd1
+.\tools\New-MeetingCleanupOnPremPackage.ps1 -Seal C:\build\MeetingCleanupOnPrem-1.1.1          # verifies, writes the ZIP, prints its SHA256
+</code></pre></div>
+<p>The PowerShell files are signed first (RFC 3161 timestamp), so the manifest records their final bytes; any change to a protected file after that needs a new manifest. <code>.gitattributes</code> keeps the exact bytes (CRLF) of the signed files.</p>
 </div></section><div class="part" id="appendices"><span class="part-label">Appendices</span></div>
 <section class="section" id="appendix-a-troubleshooting"><div class="section-head"><div class="section-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="m5.6 5.6 3.6 3.6M14.8 14.8l3.6 3.6M18.4 5.6l-3.6 3.6M9.2 14.8l-3.6 3.6"/></svg></div><div><div class="section-eyebrow">Appendix A</div><h2>Troubleshooting</h2></div></div><div class="section-body">
 <div class="table-wrap"><table>
@@ -1199,6 +1215,14 @@ Add-RoleGroupMember 'View-Only Organization Management' -Member svc-meetingclean
 <td>An action without a console (scheduled task): add <code>-Force</code>.</td>
 </tr>
 <tr>
+<td><em>Package integrity: unexpected stable file: <name></em></td>
+<td>A file that is not part of the package is in the tool folder: move your own files (lists, credential file, copies of the configuration) to <code>C:\Tools\MeetingCleanupOnPrem-data</code> and use absolute paths.</td>
+</tr>
+<tr>
+<td><em>Package integrity: SHA256 mismatch: <name></em> · <em>missing inventory path</em> · <em>expected trusted, timestamped owner signature</em> · <em>PackageIntegrity.psd1 is missing</em></td>
+<td>A file of the package was changed, removed or is not signed, or the manifest is missing: download the ZIP again from the Releases page and extract it into a new folder. A source tree without a manifest starts only with <code>-DevelopmentMode</code>.</td>
+</tr>
+<tr>
 <td><em>Series by occurrences: give the period of the action</em></td>
 <td><code>-SeriesScope Occurrences</code> (or <code>Search.SeriesScope</code>) with <em>Remove</em> or <em>Cancel</em>: <code>-Start</code> and <code>-End</code> are required.</td>
 </tr>
@@ -1207,7 +1231,7 @@ Add-RoleGroupMember 'View-Only Organization Management' -Member svc-meetingclean
 <td><code>-SeriesScope Occurrences</code> with <em>Transfer</em>: use <code>-SeriesScope Whole</code>.</td>
 </tr>
 <tr>
-<td><em>Meeting Cleanup On-Prem 1.1.0 is already loaded in this PowerShell session</em></td>
+<td><em>Meeting Cleanup On-Prem 1.1.1 is already loaded in this PowerShell session</em></td>
 <td>The compiled part of another version is loaded in this process (it cannot be unloaded): open a new PowerShell window.</td>
 </tr>
 <tr>
@@ -1284,8 +1308,8 @@ Restore-RecoverableItems -Identity adele.vance@contoso.com -FilterItemType IPM.A
 <td>refused: a credential file works</td>
 </tr>
 <tr>
-<td>Tool, <em>Report</em> of one organizer, 0.3.0 then 1.0 (each in its own process)</td>
-<td>the same <code>Meetings.csv</code>, <code>Copies.csv</code> and <code>Organizers.csv</code>; 119 s then 63 s</td>
+<td>Tool, <em>Report</em> of one organizer</td>
+<td><code>Meetings.csv</code>, <code>Copies.csv</code> and <code>Organizers.csv</code>; 63 s</td>
 </tr>
 <tr>
 <td>Tool, <em>Remove</em> of one meeting from a report (<code>-FromReport -MeetingId</code>)</td>
@@ -1320,8 +1344,8 @@ Restore-RecoverableItems -Identity adele.vance@contoso.com -FilterItemType IPM.A
 <td>4 pages; the same CSV files</td>
 </tr>
 <tr>
-<td>Module, first run of a version on a busy server</td>
-<td>45 s to compile its helper; then 0.3 s</td>
+<td>Module, at each run</td>
+<td>About 10 s on a workstation, up to 45 s measured on a busy lab server, to compile its helper in memory</td>
 </tr>
 <tr>
 <td>Tool 1.0, <code>-SearchIn Rooms</code> with every room of Exchange PowerShell</td>
@@ -1340,7 +1364,7 @@ Restore-RecoverableItems -Identity adele.vance@contoso.com -FilterItemType IPM.A
 </div></section><section class="section" id="appendix-d-versions"><div class="section-head"><div class="section-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8" r="1.5"/></svg></div><div><div class="section-eyebrow">Appendix D</div><h2>Versions</h2></div></div><div class="section-body">
 <p>MAJOR.MINOR.PATCH: MAJOR for a change of configuration or report format, MINOR for a new search or action, PATCH for a fix. Each change is described in <code>CHANGELOG.md</code>.</p>
 </div></section>
-<footer>Meeting Cleanup On-Prem 1.1.0 · Nicolas Fabert · generated on 2026-10-08 09:45 from MeetingCleanupOnPrem-Guide.md</footer></main>
+<footer>Meeting Cleanup On-Prem 1.1.1 · Nicolas Fabert · updated 2026-11-05 from MeetingCleanupOnPrem-Guide.md</footer></main>
 <button type="button" id="to-top" title="Back to top"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 14 6-6 6 6"/></svg></button>
 <dialog id="zoom"><img alt=""></dialog>
 <script>

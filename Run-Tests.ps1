@@ -6,7 +6,7 @@ param()
 $ErrorActionPreference = 'Stop'
 Import-Module Pester -MinimumVersion 6.1.0
 $configuration = New-PesterConfiguration
-$configuration.Run.Path = Join-Path $PSScriptRoot 'tests\MeetingCleanupOnPrem.Tests.ps1'
+$configuration.Run.Path = @((Join-Path $PSScriptRoot 'tests\MeetingCleanupOnPrem.Tests.ps1'), (Join-Path $PSScriptRoot 'tests\PackageIntegrity.Tests.ps1'))
 $configuration.Run.PassThru = $true
 $configuration.Output.Verbosity = 'Normal'
 $configuration.TestResult.Enabled = $true

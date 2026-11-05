@@ -10,7 +10,7 @@
 //          neutralised) and the JSON of the report
 //
 // Author : Nicolas Fabert
-// Version: 1.1.0
+// Version: 1.1.1
 
 using System;
 using System.Collections;
@@ -28,7 +28,7 @@ namespace MeetingCleanupOnPremNative
 {
     public static class Fast
     {
-        public const string Version = "1.1.0";
+        public const string Version = "1.1.1";
         static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
         static readonly string[] CopyRoles = { "Organizer", "Attendee", "Room" };
         const string TypesNs = "http://schemas.microsoft.com/exchange/services/2006/types";

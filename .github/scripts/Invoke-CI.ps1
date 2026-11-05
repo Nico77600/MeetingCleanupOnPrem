@@ -124,11 +124,19 @@ switch ($Stage) {
     'Package' {
         if (-not $configuration.packageBuilder) { throw 'This project has no package builder configured.' }
         $builder = Resolve-RepositoryFile $configuration.packageBuilder
+        $packageSwitches = @{}
+        if ($configuration.PSObject.Properties['packageSwitches']) { foreach ($switchName in @($configuration.packageSwitches)) { $packageSwitches[[string]$switchName] = $true } }
         $destination = Join-Path $OutputDirectory 'package'
         if (Test-Path -LiteralPath $destination) { throw 'The package output already exists; it will not be overwritten.' }
         & {
             Set-StrictMode -Off
-            & $builder -Destination $destination
+            & $builder -Destination $destination @packageSwitches
+        }
+        # A package that carries a manifest is verified (files and signatures) before it is accepted.
+        $integrityManifest = Join-Path $destination 'PackageIntegrity.psd1'
+        if (Test-Path -LiteralPath $integrityManifest) {
+            $integrityResult = & (Join-Path $destination 'src\Test-PackageIntegrity.ps1') -Root $destination -DevelopmentMode
+            if ($integrityResult.Status -notlike 'Valid*') { throw 'The built package does not pass the integrity check.' }
         }
         $entry = Join-Path $destination $configuration.packageEntry
         if (-not (Test-Path -LiteralPath $entry -PathType Leaf)) {
