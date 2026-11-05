@@ -549,7 +549,7 @@ A release package is protected by three things, checked before anything loads (`
 
 - the owner's timestamped Authenticode signature on every PowerShell file (`.ps1`, `.psm1`, the module `.psd1`) and on `PackageIntegrity.psd1`;
 - the signed list `PackageIntegrity.psd1`: the SHA256 of every shipped file (the compiled helper source, the report template, the HTML guides, `README.md`, `LICENSE`, `THIRD-PARTY-NOTICES.md`, `CHANGELOG.md`);
-- the folder rules of `src\Test-PackageIntegrity.ps1`: a file that is not listed, a missing file and a reparse point (junction, symbolic link) are refused. Only `config\MeetingCleanupOnPrem.config.psd1` (edited by the administrator) and the folders `reports\` and `logs\` (written by the tool) are not protected: keep credential files and lists of addresses outside the tool folder.
+- the folder rules of `src\Test-PackageIntegrity.ps1`: a file that is not listed, a missing file and a reparse point (junction, symbolic link) are refused. Only `config\MeetingCleanupOnPrem.config.psd1` (edited by the administrator) and the folders `reports\` and `logs\` (written by the tool) are not protected: keep credential files and lists of addresses outside the tool folder. The folders `reports\` and `logs\` are checked for reparse points before they are skipped: a junction or symbolic link in their place is refused. This is stricter than ExchangeLogReport on purpose.
 
 The compiled helper is built in memory from the verified `Native.cs` at each run: no assembly is cached, written or loaded from disk, so nothing executable is loaded unless the signed manifest covers it.
 

@@ -148,11 +148,13 @@ Describe 'Signed manifest and verifier' {
             try { { Invoke-Guard } | Should -Throw -Because $relative }
             finally { (Get-Item -LiteralPath $link -Force).Delete() }
         }
-        Reset-Fixture
-        $link = Join-Path $script:Fixture 'reports'
-        New-Item -ItemType Junction -Path $link -Target $outside | Out-Null
-        try { { Invoke-Guard } | Should -Throw -ExpectedMessage '*reparse point*' }
-        finally { (Get-Item -LiteralPath $link -Force).Delete() }
+        foreach ($generated in 'reports', 'logs') {
+            Reset-Fixture
+            $link = Join-Path $script:Fixture $generated
+            New-Item -ItemType Junction -Path $link -Target $outside | Out-Null
+            try { { Invoke-Guard } | Should -Throw -ExpectedMessage '*reparse point*' -Because $generated }
+            finally { (Get-Item -LiteralPath $link -Force).Delete() }
+        }
     }
     It 'rejects an absent manifest and a manifest of the wrong shape' {
         Remove-Item -LiteralPath (Join-Path $script:Fixture 'PackageIntegrity.psd1')
