@@ -281,6 +281,8 @@ Copy the folder, then unblock the files downloaded from the Internet:
 Get-ChildItem 'C:\Tools\MeetingCleanupOnPrem-1.1.1' -Recurse -File -Force | Unblock-File
 ```
 
+Keep your own files (address lists, credential file, copies of the configuration) in a data folder next to the tool folder, `C:\Tools\MeetingCleanupOnPrem-data`, and give absolute paths: inside the tool folder only `config\MeetingCleanupOnPrem.config.psd1`, `reports\` and `logs\` may change. Each version is extracted into its own folder; on an upgrade, copy your configuration over the new one and update the paths of `Connection.CredentialFile`, `Search.RoomFile`, `Search.MailboxFile` and of the scheduled tasks (user guide, chapter 4).
+
 Every run compiles its helper (`src\MeetingCleanupOnPrem.Native.cs`) in memory: about 10 seconds on a workstation, up to a minute on a busy Exchange server. Nothing is written to disk.
 
 <!-- icon: settings -->
@@ -303,8 +305,8 @@ Every run compiles its helper (`src\MeetingCleanupOnPrem.Native.cs`) in memory: 
 | `Search.SearchIn` | `Organizer`, `Rooms` | Default of `-SearchIn`. |
 | `Search.PastDays` · `FutureDays` | `0` · `365` | Default period: today minus *PastDays* to today plus *FutureDays* (included). |
 | `Search.SeriesScope` | `Whole` | `Whole`: a series acted on whole; `Occurrences`: only its occurrences in the period (chapter 4). Rooms mode always acts on the occurrences of the period. |
-| `Search.Rooms` · `RoomFile` | | Rooms added to those of Exchange PowerShell (or the only ones without it). |
-| `Search.Mailboxes` · `MailboxFile` | | Default mailboxes of the `Mailboxes` scope. |
+| `Search.Rooms` · `RoomFile` | | Rooms added to those of Exchange PowerShell (or the only ones without it). `RoomFile`: absolute path, in the data folder `C:\Tools\MeetingCleanupOnPrem-data` (outside the tool folder). |
+| `Search.Mailboxes` · `MailboxFile` | | Default mailboxes of the `Mailboxes` scope. `MailboxFile`: absolute path, in the data folder. |
 | `Search.AcceptedDomains` | | The domains of the organization: an attendee of another domain is external (listed, not processed). Empty: every address is looked up. |
 | `Search.DirectoryMode` | `Auto` | `Auto` or `ExchangePowerShell`: the cmdlets when present; `None`: never. |
 | `Search.AllRooms` | `$true` | `$true`: every room mailbox of Exchange PowerShell, with `Rooms` and `RoomFile`; `$false`: `Rooms` and `RoomFile` only — when the impersonation is limited to some rooms (a room outside its scope is not read: warning). |
@@ -551,7 +553,7 @@ A release package is protected by three things, checked before anything loads (`
 
 The compiled helper is built in memory from the verified `Native.cs` at each run: no assembly is cached, written or loaded from disk, so nothing executable is loaded unless the signed manifest covers it.
 
-A tree without a manifest (a source checkout, a developer build) starts only with `-DevelopmentMode`; a manifest that is present is always verified, in that mode too. Continuous integration builds an unsigned package with `-Unsigned` and verifies it with `-DevelopmentMode`.
+A tree without a manifest (a source checkout, a developer build) starts only with `-DevelopmentMode`; a manifest that is present is always verified, in that mode too. Once the signed manifest is committed, a developer who edits a protected file deletes `package\PackageIntegrity.psd1` in the working copy (never committed) and starts with `-DevelopmentMode`. Continuous integration builds an unsigned package with `-Unsigned` and verifies it with `-DevelopmentMode`.
 
 The HTML guides are the committed files of `package\docs\`: rebuild them by hand with `.\tools\Build-Documentation.ps1` (the footer carries the `updated` date of the front matter, so a rebuild without change gives the same bytes) and commit them before the manifest is written. The builder copies them as they are; `-RebuildDocs` rebuilds them first (not with `-Unsigned`).
 
@@ -583,6 +585,8 @@ The PowerShell files are signed first (RFC 3161 timestamp), so the manifest reco
 | A meeting known to exist is not found | Period (a series is found when an occurrence falls in it), address of the organizer (the address shown in the meeting; X500 for a deleted mailbox), or scope: a meeting without room and without organizer copy needs `Mailboxes` or `AllMailboxes`. |
 | *more than 500 items at ..., some of them may be missing* | Raise `Connection.PageSize` (up to 1,000). |
 | *Confirmation needed: run interactively, or add -Force* | An action without a console (scheduled task): add `-Force`. |
+| *Package integrity: unexpected stable file: <name>* | A file that is not part of the package is in the tool folder: move your own files (lists, credential file, copies of the configuration) to `C:\Tools\MeetingCleanupOnPrem-data` and use absolute paths. |
+| *Package integrity: SHA256 mismatch: <name>* · *missing inventory path* · *expected trusted, timestamped owner signature* · *PackageIntegrity.psd1 is missing* | A file of the package was changed, removed or is not signed, or the manifest is missing: download the ZIP again from the Releases page and extract it into a new folder. A source tree without a manifest starts only with `-DevelopmentMode`. |
 | *Series by occurrences: give the period of the action* | `-SeriesScope Occurrences` (or `Search.SeriesScope`) with *Remove* or *Cancel*: `-Start` and `-End` are required. |
 | *Transfer moves whole series* | `-SeriesScope Occurrences` with *Transfer*: use `-SeriesScope Whole`. |
 | *Meeting Cleanup On-Prem 1.1.1 is already loaded in this PowerShell session* | The compiled part of another version is loaded in this process (it cannot be unloaded): open a new PowerShell window. |

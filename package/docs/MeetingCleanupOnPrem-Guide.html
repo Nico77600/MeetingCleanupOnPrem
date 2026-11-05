@@ -538,6 +538,7 @@ Add-RoleGroupMember 'View-Only Organization Management' -Member svc-meetingclean
 <p>Copy the folder, then unblock the files downloaded from the Internet:</p>
 <div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code>Get-ChildItem 'C:\Tools\MeetingCleanupOnPrem-1.1.1' -Recurse -File -Force | Unblock-File
 </code></pre></div>
+<p>Keep your own files (address lists, credential file, copies of the configuration) in a data folder next to the tool folder, <code>C:\Tools\MeetingCleanupOnPrem-data</code>, and give absolute paths: inside the tool folder only <code>config\MeetingCleanupOnPrem.config.psd1</code>, <code>reports\</code> and <code>logs\</code> may change. Each version is extracted into its own folder; on an upgrade, copy your configuration over the new one and update the paths of <code>Connection.CredentialFile</code>, <code>Search.RoomFile</code>, <code>Search.MailboxFile</code> and of the scheduled tasks (user guide, chapter 4).</p>
 <p>Every run compiles its helper (<code>src\MeetingCleanupOnPrem.Native.cs</code>) in memory: about 10 seconds on a workstation, up to a minute on a busy Exchange server. Nothing is written to disk.</p>
 </div></section><section class="section" id="configuration"><div class="section-head"><div class="section-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg></div><div><div class="section-eyebrow">Chapter 7</div><h2>Configuration</h2></div></div><div class="section-body">
 <p><code>config\MeetingCleanupOnPrem.config.psd1</code> is a PowerShell data file. Every value is checked at start and all the problems are listed at once; the parameters of the command line override it for one run.</p>
@@ -618,12 +619,12 @@ Add-RoleGroupMember 'View-Only Organization Management' -Member svc-meetingclean
 <tr>
 <td><code>Search.Rooms</code> · <code>RoomFile</code></td>
 <td></td>
-<td>Rooms added to those of Exchange PowerShell (or the only ones without it).</td>
+<td>Rooms added to those of Exchange PowerShell (or the only ones without it). <code>RoomFile</code>: absolute path, in the data folder <code>C:\Tools\MeetingCleanupOnPrem-data</code> (outside the tool folder).</td>
 </tr>
 <tr>
 <td><code>Search.Mailboxes</code> · <code>MailboxFile</code></td>
 <td></td>
-<td>Default mailboxes of the <code>Mailboxes</code> scope.</td>
+<td>Default mailboxes of the <code>Mailboxes</code> scope. <code>MailboxFile</code>: absolute path, in the data folder.</td>
 </tr>
 <tr>
 <td><code>Search.AcceptedDomains</code></td>
@@ -1154,7 +1155,7 @@ Add-RoleGroupMember 'View-Only Organization Management' -Member svc-meetingclean
 <li>the folder rules of <code>src\Test-PackageIntegrity.ps1</code>: a file that is not listed, a missing file and a reparse point (junction, symbolic link) are refused. Only <code>config\MeetingCleanupOnPrem.config.psd1</code> (edited by the administrator) and the folders <code>reports\</code> and <code>logs\</code> (written by the tool) are not protected: keep credential files and lists of addresses outside the tool folder.</li>
 </ul>
 <p>The compiled helper is built in memory from the verified <code>Native.cs</code> at each run: no assembly is cached, written or loaded from disk, so nothing executable is loaded unless the signed manifest covers it.</p>
-<p>A tree without a manifest (a source checkout, a developer build) starts only with <code>-DevelopmentMode</code>; a manifest that is present is always verified, in that mode too. Continuous integration builds an unsigned package with <code>-Unsigned</code> and verifies it with <code>-DevelopmentMode</code>.</p>
+<p>A tree without a manifest (a source checkout, a developer build) starts only with <code>-DevelopmentMode</code>; a manifest that is present is always verified, in that mode too. Once the signed manifest is committed, a developer who edits a protected file deletes <code>package\PackageIntegrity.psd1</code> in the working copy (never committed) and starts with <code>-DevelopmentMode</code>. Continuous integration builds an unsigned package with <code>-Unsigned</code> and verifies it with <code>-DevelopmentMode</code>.</p>
 <p>The HTML guides are the committed files of <code>package\docs\</code>: rebuild them by hand with <code>.\tools\Build-Documentation.ps1</code> (the footer carries the <code>updated</code> date of the front matter, so a rebuild without change gives the same bytes) and commit them before the manifest is written. The builder copies them as they are; <code>-RebuildDocs</code> rebuilds them first (not with <code>-Unsigned</code>).</p>
 <p>The owner signs a release in four phases:</p>
 <div class="code"><div class="code-head"><span>PowerShell</span><button type="button" class="copy"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button></div><pre><code>.\tools\New-MeetingCleanupOnPremPackage.ps1 -Destination C:\build\MeetingCleanupOnPrem-1.1.1   # refuses unsigned scripts
@@ -1212,6 +1213,14 @@ Add-RoleGroupMember 'View-Only Organization Management' -Member svc-meetingclean
 <tr>
 <td><em>Confirmation needed: run interactively, or add -Force</em></td>
 <td>An action without a console (scheduled task): add <code>-Force</code>.</td>
+</tr>
+<tr>
+<td><em>Package integrity: unexpected stable file: <name></em></td>
+<td>A file that is not part of the package is in the tool folder: move your own files (lists, credential file, copies of the configuration) to <code>C:\Tools\MeetingCleanupOnPrem-data</code> and use absolute paths.</td>
+</tr>
+<tr>
+<td><em>Package integrity: SHA256 mismatch: <name></em> · <em>missing inventory path</em> · <em>expected trusted, timestamped owner signature</em> · <em>PackageIntegrity.psd1 is missing</em></td>
+<td>A file of the package was changed, removed or is not signed, or the manifest is missing: download the ZIP again from the Releases page and extract it into a new folder. A source tree without a manifest starts only with <code>-DevelopmentMode</code>.</td>
 </tr>
 <tr>
 <td><em>Series by occurrences: give the period of the action</em></td>

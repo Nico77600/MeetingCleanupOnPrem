@@ -6,7 +6,7 @@
 #
 #  Read by Invoke-MeetingCleanupOnPrem.ps1. It is a PowerShell data file: text between quotes, $true / $false,
 #  numbers, @( ) for lists and @{ } for groups of settings. Lines starting with # are comments. Relative paths
-#  (.\reports, .\logs) are relative to the tool folder. Every value is checked at start; all the problems are
+#  (.\reports, .\logs) are relative to the tool folder. Paths of your own files (lists, credential file) must be absolute and point to the data folder outside the tool folder, for example C:\Tools\MeetingCleanupOnPrem-data\. Every value is checked at start; all the problems are
 #  listed at once. The parameters of the command line override it for one run.
 #
 #  No password here: the tool signs in as the account that runs it, asks for the password (CredentialUser), or
@@ -46,9 +46,9 @@
         FutureDays      = 365                        # ... to today plus FutureDays
         SeriesScope     = 'Whole'                    # Whole | Occurrences
         Rooms           = @()                        # rooms added to those of Exchange PowerShell
-        RoomFile        = ''                         # a file of rooms (one address per line, or CSV)
+        RoomFile        = ''                         # a file of rooms (one address per line, or CSV): absolute path, in the data folder
         Mailboxes       = @()                        # the mailboxes of -SearchIn Mailboxes
-        MailboxFile     = ''                         # a file of mailboxes
+        MailboxFile     = ''                         # a file of mailboxes: absolute path, in the data folder
         AcceptedDomains = @('contoso.test')          # the domains of the organization: another one is external (listed, not processed)
         DirectoryMode   = 'Auto'                     # Auto | ExchangePowerShell | None (never the Exchange cmdlets)
         AllRooms        = $true                      # $true: every room mailbox of Exchange PowerShell, with Rooms and RoomFile; $false: Rooms and RoomFile only

@@ -6,7 +6,7 @@ Author: Nicolas Fabert.
 ## [1.1.1] — 2026-11-05
 
 ### Added
-- The release ZIP has one folder, `MeetingCleanupOnPrem-1.1.1`, with the PowerShell files, the HTML guides, `README.md`, `CHANGELOG.md`, `LICENSE` and `THIRD-PARTY-NOTICES.md`.
+- The release ZIP has one folder, `MeetingCleanupOnPrem-1.1.1`, with the PowerShell files, the HTML guides, `README.md`, `CHANGELOG.md`, `LICENSE`, `THIRD-PARTY-NOTICES.md` and `PackageIntegrity.psd1`.
 - The PowerShell files carry the owner's timestamped Authenticode signature (Nicolas Fabert).
 - The user guide has a filled configuration example, the command that shows your EWS URL, and a "You should see / If not" check after each setup step.
 

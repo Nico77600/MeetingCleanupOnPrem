@@ -40,6 +40,8 @@ The user guide has every step with what you should see and what to do if not: op
    notepad .\config\MeetingCleanupOnPrem.config.psd1
    ```
 
+   Keep credential files and lists of addresses outside the tool folder, for example in `C:\Tools\MeetingCleanupOnPrem-data`: only the configuration, `reports\` and `logs\` may change in it.
+
 4. Run a report first. It changes nothing:
 
    ```powershell
