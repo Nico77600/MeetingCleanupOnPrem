@@ -19,10 +19,10 @@
 > Files downloaded from the Internet may be blocked by Windows and fail to run. Before using this project, unblock every file in the downloaded folder:
 >
 > ```powershell
-> Get-ChildItem "C:\Chemin\Du\Dossier" -Recurse -File -Force | Unblock-File
+> Get-ChildItem "C:\Tools\MeetingCleanupOnPrem-1.1.1" -Recurse -File -Force | Unblock-File
 > ```
 >
-> Replace the example path with the folder where you downloaded or extracted this project.
+> Replace the example path with the folder where you extracted the release ZIP.
 
 ## Why
 
@@ -47,8 +47,8 @@ This tool does it for **Exchange Server** (2016, 2019, Subscription Edition) wit
 - **Rooms over a period** (`-Room`, `-RoomFile`): every meeting of the rooms, whatever its organizer. A series is limited to the occurrences the rooms hold in the period; it goes on before and after.
 - **One occurrence of a series** (`-SeriesScope Occurrences`): a series of an organizer limited to its occurrences in the period — with a period of one day, one occurrence. *Cancel* sends one cancellation for that date only; the series goes on.
 - **Nothing by surprise**: the report is the default action. Every action shows exactly what it will do and asks to type **YES**; a backup (`Backup.json`) is written before any change; each copy removed is read again to check it is gone. `-FromReport` acts on exactly the meetings of a reviewed report.
-- **Large organizations**: each calendar is read once per search, page after page, the details 50 items per call; a request Exchange is too busy to process (throttling) is sent again after the delay it asks for. The console shows a live progress line with the time left.
-- **One service account** with ApplicationImpersonation (limited by a management scope), **EWS** called directly and **Exchange PowerShell** opened by the tool (remote PowerShell): no module to install.
+- **Large organizations**: each calendar is read once per search, and a request Exchange is too busy to process is sent again later. The console shows a live progress line with the time left.
+- **One service account** that opens the calendars for you, and nothing to install: the tool talks to Exchange itself (see *Requirements* for the four terms: EWS, impersonation, remote PowerShell, Kerberos / NTLM).
 
 ## The actions
 
@@ -105,20 +105,22 @@ Each run writes `MeetingCleanupOnPrem-Meetings.csv`, `-Copies.csv`, `-Organizers
 
 | Item | Requirement |
 |---|---|
-| Exchange | **Exchange Server 2016, 2019 or Subscription Edition**, EWS reachable over HTTPS (validated on Exchange Server 2019). For Exchange Online: [Meeting Cleanup](https://github.com/Nico77600/MeetingCleanup) |
+| Exchange | **Exchange Server 2016, 2019 or Subscription Edition**, EWS (*Exchange Web Services*, the web address the tool uses to read calendars) reachable over HTTPS (validated on Exchange Server 2019). For Exchange Online: [Meeting Cleanup](https://github.com/Nico77600/MeetingCleanup) |
 | PowerShell | 7.4 or later — a portable zip is enough |
 | Windows | Windows 10 / 11 or Windows Server 2016 to 2025: an administration workstation or an Exchange server; it runs in a console or a scheduled task |
-| Service account | The role **ApplicationImpersonation**, limited by a management scope ([developer guide, chapter 5](package/docs/MeetingCleanupOnPrem-Guide.md#5-rights-and-connection)); `Delegate` (full access) works as well |
-| Exchange PowerShell | Recommended (remote PowerShell, opened by the tool): aliases and X500 addresses, every room and every mailbox, groups. Read-only roles of the directory |
+| Service account | The role **ApplicationImpersonation** (*impersonation*: the account opens other people's calendars as if it were them), limited to the mailboxes concerned when possible ([developer guide, chapter 5](package/docs/MeetingCleanupOnPrem-Guide.md#5-rights-and-connection)); `Delegate` (full access) works as well |
+| Exchange PowerShell | Recommended (*RPS*, remote PowerShell: the Exchange command line, opened by the tool): aliases and X500 addresses, every room and every mailbox, groups. Read-only roles of the directory |
 | *Restore* | The role **Mailbox Import Export** (`Get-RecoverableItems`, `Restore-RecoverableItems`) |
-| Network | HTTPS to the EWS URL; HTTP (Kerberos) to `/PowerShell/` of a Mailbox server |
+| Network | HTTPS to the EWS URL; HTTP to `/PowerShell/` of a Mailbox server. Windows signs you in with *Kerberos* or *NTLM* (two ways to prove who you are); the default picks one for you |
 
 ## Quick start
 
-Download `MeetingCleanupOnPrem-<version>.zip` from the [latest release](https://github.com/Nico77600/MeetingCleanupOnPrem/releases/latest), extract it (for example in `C:\Tools`) and unblock the files (command at the top of this page). You can also copy the repository `package` folder.
+Download `MeetingCleanupOnPrem-1.1.1.zip` from the [latest release](https://github.com/Nico77600/MeetingCleanupOnPrem/releases/latest) (not the *Source code* archives), extract it (for example in `C:\Tools`) and unblock the files (command at the top of this page).
+
+Open PowerShell 7 (type `pwsh`) and check it: `$PSVersionTable.PSVersion` must show 7.4 or later. Windows PowerShell 5.1 is not enough.
 
 ```powershell
-cd C:\Tools\MeetingCleanupOnPrem-1.1.0
+cd C:\Tools\MeetingCleanupOnPrem-1.1.1
 notepad .\config\MeetingCleanupOnPrem.config.psd1     # EWS URL, service account, Exchange PowerShell server, accepted domains
 
 # Always a report first (nothing is changed), then the same command with the action
@@ -132,7 +134,7 @@ notepad .\config\MeetingCleanupOnPrem.config.psd1     # EWS URL, service account
 
 One command per everyday question — who still organizes what, a leaver with or without mailbox, a transfer, one series, one occurrence of a series, rooms closed, the leavers of the month, undo a removal, a scheduled task: see the [user guide](package/docs/MeetingCleanupOnPrem-UserGuide.md).
 
-The `package` folder of this repository holds exactly the files needed to run, with the guides. The zip of each [release](https://github.com/Nico77600/MeetingCleanupOnPrem/releases) contains the same run-time files with the HTML guides; `.\tools\New-MeetingCleanupOnPremPackage.ps1` builds that zip content from the repository.
+The setup steps, each with what you should see and what to do if not, are in the [user guide](package/docs/MeetingCleanupOnPrem-UserGuide.md).
 
 ## Documentation
 
@@ -151,6 +153,10 @@ Both guides also exist as a single HTML file with a light and a dark theme (`pac
 ```
 
 The tool was also validated on a lab Exchange Server 2019 (four Mailbox servers behind a load balancer, run by a scheduled task with a service account): reports of organizers and lists, Remove from a reviewed report and Restore without any message, Cancel of single meetings and series, rooms over a period with series, transfers of series and single meetings, calendars read page after page ([developer guide, appendix C](package/docs/MeetingCleanupOnPrem-Guide.md#appendix-c---lab-measurements)).
+
+## For developers
+
+The `package` folder of this repository holds the run-time files and the guide sources. `git clone` the repository and run the tests above; the developer guide (chapters 6 and 15) describes the release ZIP build and its signing.
 
 ## License
 

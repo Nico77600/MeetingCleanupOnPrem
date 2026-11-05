@@ -124,11 +124,12 @@ switch ($Stage) {
     'Package' {
         if (-not $configuration.packageBuilder) { throw 'This project has no package builder configured.' }
         $builder = Resolve-RepositoryFile $configuration.packageBuilder
+        $packageArguments = @(if ($configuration.PSObject.Properties['packageArguments']) { $configuration.packageArguments })
         $destination = Join-Path $OutputDirectory 'package'
         if (Test-Path -LiteralPath $destination) { throw 'The package output already exists; it will not be overwritten.' }
         & {
             Set-StrictMode -Off
-            & $builder -Destination $destination
+            & $builder -Destination $destination @packageArguments
         }
         $entry = Join-Path $destination $configuration.packageEntry
         if (-not (Test-Path -LiteralPath $entry -PathType Leaf)) {

@@ -19,11 +19,13 @@
 
 .NOTES
     Author  : Nicolas Fabert
-    Version : 1.1.0
+    Version : 1.1.1
     Console : a live progress line (bar, part done, time left) in an interactive console; colours off when the
               output is redirected or NO_COLOR is set (MCO_FORCE_COLOR=1 forces them); MCO_ICONS = Emoji |
               Symbols | Ascii forces the style of the icons.
     Exit codes : 0 = completed, 1 = failed, 2 = finished with warnings (a copy not removed or restored, a mailbox not read...).
+    Integrity : a release package is verified (owner signature, SHA256 of every file) before anything loads;
+                -DevelopmentMode starts a source tree that has no PackageIntegrity.psd1 (a present manifest is always verified).
     Documentation : docs\MeetingCleanupOnPrem-UserGuide.html (user guide: prerequisites, everyday commands) and
                     docs\MeetingCleanupOnPrem-Guide.html (developer guide); sources: docs\*.md
 
@@ -64,7 +66,8 @@ param(
     [string]$CredentialUser,
     [ValidateSet('Existing', 'Auto', 'Rps')][string]$ManagementShellMode,
     [string]$ManagementShellServer,
-    [string]$ManagementShellUri
+    [string]$ManagementShellUri,
+    [switch]$DevelopmentMode
 )
 
 $ErrorActionPreference = 'Stop'
@@ -87,8 +90,35 @@ function Confirm-McoAction {
 }
 
 try {
-    Import-Module (Join-Path $PSScriptRoot 'MeetingCleanupOnPrem.psd1') -Force
-    $loaded = $true
+    # The package is verified before any of its code runs: the verifier must carry the owner signature, then it
+    # checks the signed manifest. A tree without a manifest is accepted only with -DevelopmentMode.
+    $integrityManifest = Join-Path $PSScriptRoot 'PackageIntegrity.psd1'
+    $integrityHint = 'Use the complete release ZIP (https://github.com/Nico77600/MeetingCleanupOnPrem/releases/latest): extract it again and unblock it. A development or CI build is started from its folder with pwsh -NoProfile -File .\Invoke-MeetingCleanupOnPrem.ps1 <parameters> -DevelopmentMode.'
+    if (Microsoft.PowerShell.Management\Test-Path -LiteralPath $integrityManifest) {
+        $integrityVerifier = Join-Path $PSScriptRoot 'src\Test-PackageIntegrity.ps1'
+        $integrityCursor = [IO.Path]::GetFullPath($integrityVerifier)
+        while ($integrityCursor) {
+            $integrityItem = Microsoft.PowerShell.Management\Get-Item -LiteralPath $integrityCursor -Force -ErrorAction Stop
+            if ($integrityItem.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "Package integrity: reparse point: $integrityCursor" }
+            $integrityCursor = [IO.Path]::GetDirectoryName($integrityCursor)
+        }
+        $integritySignature = Microsoft.PowerShell.Security\Get-AuthenticodeSignature -LiteralPath $integrityVerifier -ErrorAction Stop
+        if ([string]$integritySignature.Status -cne 'Valid' -or $null -eq $integritySignature.SignerCertificate -or
+            $integritySignature.SignerCertificate.Thumbprint -cne '0F28E442889F17B5F4D251E8F96E7CC6E2C9C6D6' -or
+            $null -eq $integritySignature.TimeStamperCertificate) {
+            throw "Package integrity: verifier must have the trusted, timestamped owner signature. $integrityHint"
+        }
+        if ($DevelopmentMode) { & $integrityVerifier -Root $PSScriptRoot -DevelopmentMode | Out-Null } else { & $integrityVerifier -Root $PSScriptRoot -Distribution | Out-Null }
+    }
+    elseif (-not $DevelopmentMode) {
+        throw "Package integrity: PackageIntegrity.psd1 is missing. $integrityHint"
+    }
+    else {
+        Write-Warning 'DevelopmentMode: no package manifest; package byte integrity and publisher authentication are not established.'
+        # The module does not repeat this warning in the same process.
+        [AppDomain]::CurrentDomain.SetData('MeetingCleanupOnPrem.UnverifiedTreeWarned', $true)
+    }
+    Import-Module (Join-Path $PSScriptRoot 'MeetingCleanupOnPrem.psd1') -Force    $loaded = $true
     $settings = Import-McoConfiguration -Path $ConfigPath -Root $PSScriptRoot
     foreach ($pair in @(
         @('EwsUrl', $EwsUrl), @('Mailbox', $EwsMailbox), @('Authentication', $Authentication), @('AccessMode', $AccessMode), @('CredentialUser', $CredentialUser),

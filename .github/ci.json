@@ -3,8 +3,10 @@
   "testMode": "runner",
   "testEntry": "Run-Tests.ps1",
   "tests": [
-    "tests/MeetingCleanupOnPrem.Tests.ps1"
+    "tests/MeetingCleanupOnPrem.Tests.ps1",
+    "tests/PackageIntegrity.Tests.ps1"
   ],
   "packageBuilder": "tools/New-MeetingCleanupOnPremPackage.ps1",
+  "packageArguments": [ "-Unsigned" ],
   "packageEntry": "Invoke-MeetingCleanupOnPrem.ps1"
 }

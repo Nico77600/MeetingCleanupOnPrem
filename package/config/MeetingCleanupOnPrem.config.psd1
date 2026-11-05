@@ -2,7 +2,7 @@
 #  Meeting Cleanup On-Prem - configuration file
 #  --------------------------------------------------------------------------
 #  Author  : Nicolas Fabert
-#  Version : 1.1.0
+#  Version : 1.1.1
 #
 #  Read by Invoke-MeetingCleanupOnPrem.ps1. It is a PowerShell data file: text between quotes, $true / $false,
 #  numbers, @( ) for lists and @{ } for groups of settings. Lines starting with # are comments. Relative paths
