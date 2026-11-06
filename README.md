@@ -15,6 +15,13 @@
   <a href="package/docs/MeetingCleanupOnPrem-Guide.md"><b>Developer guide</b></a>
 </p>
 
+<p align="center">
+  <a href="https://github.com/Nico77600/MeetingCleanupOnPrem/releases/latest"><img alt="Download the latest release" src="https://img.shields.io/github/v/release/Nico77600/MeetingCleanupOnPrem?label=Download%20the%20latest%20release&amp;style=for-the-badge"></a>
+</p>
+
+> [!TIP]
+> **Download the latest release.** Open the [latest release](https://github.com/Nico77600/MeetingCleanupOnPrem/releases/latest) and download **`MeetingCleanupOnPrem-1.1.1.zip`** under *Assets* (its SHA-256 is in the release notes). That ZIP is the signed tool. Do not use the **Source code** archives or the green **Code** button: they are a copy of the repository, not the release package.
+
 > [!IMPORTANT]
 > Files downloaded from the Internet may be blocked by Windows and fail to run. Before using this project, unblock every file in the downloaded folder:
 >
